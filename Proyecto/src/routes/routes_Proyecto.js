@@ -37,9 +37,14 @@ router.put('/estado/:id', proyectoController.actualizarEstadoProyecto);
  */
 router.get('/:id', proyectoController.consultarInformacionProyecto);
 
-/*
-router.delete('/:id', proyectoController.eliminarProyecto);
-*/
+/**
+ * @route POST /apiRedes/proyecto/:id/lanzar-convocatorias
+ * @description Activa la creación de las convocatorias asociadas a un proyecto específico.
+ * @access Public
+ * @param {number} id - El ID del proyecto.
+ * @body {object} numPersSolicitad, fechaCierre - Datos ingresados por el usuario.
+ */
+router.post('/:id/lanzar-convocatorias', proyectoController.lanzarConvocatorias);
 
 // Exportamos el router para que pueda ser usado en app.js
 module.exports = router;

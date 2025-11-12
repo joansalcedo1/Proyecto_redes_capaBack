@@ -4,7 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const routes = require("./routes/routes_Proyecto")
 
-const PORT = 3308 
+const PORT = 3312 
 //SE SETEA EL PUERTO 
 app.set("port",PORT)
 app.use(express.json())
@@ -22,5 +22,5 @@ Para postulante => /postulante
 app.use("/apiRedes/proyecto",routes)
 
 app.listen(PORT,()=>{
-    console.log("app is listening port 3308")
+    console.log("app is listening port 3312")
 })
