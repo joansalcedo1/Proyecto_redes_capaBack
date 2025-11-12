@@ -1,6 +1,18 @@
 //Script que contiene la logica de cada uno de los metodos que se van a hacer
 
 const proyectoModel = require("../models/proyectoModel")
+const CONVOCATORIA_API_URL = 'http://localhost:3308/apiRedes/convocatoria/';
+
+function mapDepartamentoToArea(departamentoKey) {
+    const map = {
+        'lucesDep': 'Luces',
+        'arteDep': 'Arte',
+        'camaraDep': 'Cámara',
+        'postProdDep': 'Post-Producción',
+        'direccionDep': 'Dirección'
+    };
+    return map[departamentoKey] || 'General';
+}
 
 /**
  * @async
@@ -151,6 +163,125 @@ exports.consultarInformacionProyecto = async (req, res) => {
         console.error('❌ Log: Error al consultar información detallada:', error.message);
         res.status(500).json({
             error: 'Error interno del servidor al consultar el proyecto.'
+        });
+    }
+};
+
+/**
+ * @async
+ * @function lanzarConvocatorias
+ * @description Obtiene los detalles de un proyecto y crea las convocatorias asociadas en el Microservicio de Convocatorias usando fetch.
+ * @route POST /apiRedes/proyecto/:id/lanzar-convocatorias
+ * @param {object} req - Objeto de la solicitud HTTP (contiene params y body con datos de convocatoria).
+ * @param {object} res - Objeto de la respuesta HTTP.
+ * @documentation Utiliza la estructura nativa 'fetch' para realizar la comunicación entre microservicios.
+ */
+exports.lanzarConvocatorias = async (req, res) => {
+    const idProyecto = req.params.id;
+    
+    // Desestructuración directa de los inputs del usuario (datos de la convocatoria)
+    const { 
+        titulo, 
+        descripcion, 
+        estado, 
+        numPersSolicitad, 
+        fechaCierre 
+    } = req.body; 
+
+    // 1. Validación de datos obligatorios
+    if (isNaN(idProyecto) || !titulo || !descripcion || !estado || !numPersSolicitad || !fechaCierre) {
+        console.warn('⚠️ Log: Datos incompletos o inválidos para lanzar convocatorias.');
+        return res.status(400).json({
+            error: 'Faltan campos obligatorios para la convocatoria o el ID es inválido.'
+        });
+    }
+
+    try {
+        // 2. Obtener los datos del proyecto de la BD local
+        const proyecto = await proyectoModel.consultarInformacionProyecto(idProyecto);
+
+        if (!proyecto) {
+            console.warn(`⚠️ Log: Proyecto ID ${idProyecto} no encontrado para lanzar convocatorias.`);
+            return res.status(404).json({ message: 'Proyecto no encontrado.' });
+        }
+        
+        // 3. Crear y lanzar las convocatorias
+        const departamentos = ['lucesDep', 'arteDep', 'camaraDep', 'postProdDep', 'direccionDep'];
+        let convocatoriasLanzadas = 0;
+        let erroresConvocatoria = [];
+        const fechaInicio = new Date().toISOString().slice(0, 10); // Fecha actual
+
+        for (const depKey of departamentos) {
+            if (proyecto[depKey] === 1) {
+                
+                // 3a. Construcción concisa del payload (se evita una función auxiliar)
+                const payload = {
+                    // Datos ingresados por el usuario
+                    tituloCon: titulo, // Título de la convocatoria
+                    descripcion: descripcion,
+                    estado: estado,
+                    numPersSolicitad: numPersSolicitad,
+                    fecha_cierre: fechaCierre, 
+
+                    // Datos derivados del back-end
+                    tituloProyecto: proyecto.titulo, // Título del proyecto
+                    areaRequerida: mapDepartamentoToArea(depKey), // Área (ej: 'Luces')
+                    fecha_inicio: fechaInicio 
+                };
+                
+                // 3b. Petición POST al Microservicio de Convocatorias (usando fetch)
+                try {
+                    const response = await fetch(CONVOCATORIA_API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Manejar errores HTTP 4xx/5xx del otro microservicio
+                    if (!response.ok) {
+                        const errText = await response.text();
+                        console.error(`❌ Log: Error HTTP (${response.status}) al crear convocatoria para ${depKey}. Detalles: ${errText}`);
+                        erroresConvocatoria.push(`Error al crear ${mapDepartamentoToArea(depKey)}: ${errText.substring(0, 50)}...`);
+                        continue; // Continúa con el siguiente departamento si este falla
+                    }
+
+                    // Petición exitosa
+                    convocatoriasLanzadas++;
+                    console.log(`📡 Log: Convocatoria para ${depKey} del Proyecto ID ${idProyecto} creada con éxito.`);
+
+                } catch (fetchError) {
+                    // Manejar errores de red (ej. Microservicio de Convocatorias caído)
+                    console.error(`❌ Log: Error de RED/FETCH al crear convocatoria para ${depKey}. Detalles: ${fetchError.message}`);
+                    erroresConvocatoria.push(`Error de red al crear ${mapDepartamentoToArea(depKey)}.`);
+                }
+            }
+        }
+
+        // 4. Respuesta HTTP final
+        const baseMessage = `Se crearon ${convocatoriasLanzadas} convocatorias exitosamente.`;
+        
+        if (erroresConvocatoria.length > 0) {
+            // Reportar éxito parcial con advertencias
+            console.warn(`⚠️ Log: Éxito parcial. Fallaron ${erroresConvocatoria.length} convocatorias.`);
+            return res.status(202).json({ // 202 Accepted, éxito parcial
+                message: baseMessage,
+                advertencias: erroresConvocatoria,
+                idProyecto: idProyecto
+            });
+        }
+        
+        // Éxito total
+        console.log(`✅ Log: Lanzamiento de convocatorias completado para el Proyecto ID ${idProyecto}.`);
+        res.status(200).json({
+            message: baseMessage,
+            idProyecto: idProyecto
+        });
+
+    } catch (error) {
+        // 5. Manejo de errores fatales (ej. Error de BD en proyectoModel)
+        console.error('❌ Log: Error fatal al obtener el proyecto o lanzar convocatorias:', error.message);
+        res.status(500).json({
+            error: 'Error interno del servidor al procesar la solicitud.'
         });
     }
 };

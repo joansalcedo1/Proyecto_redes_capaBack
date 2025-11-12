@@ -4,7 +4,7 @@ const morgan = require('morgan');
 const cors = require('cors');
 const routes = require("./routes/routes_usuario")
 
-const PORT = 3308 
+const PORT = 3310 
 //SE SETEA EL PUERTO 
 app.set("port",PORT)
 app.use(express.json())
