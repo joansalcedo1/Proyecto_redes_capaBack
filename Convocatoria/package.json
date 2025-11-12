@@ -2,7 +2,7 @@
   "name": "capa-back",
   "version": "1.0.0",
   "description": "Capa back del microservicio convocatoria",
-  "main": "index.js",
+  "main": "app_Convocatoria.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -15,5 +15,6 @@
     "mysql": "^2.18.1",
     "mysql2": "^3.15.3",
     "node": "^25.2.0"
-  }
+  },
+  "keywords": []
 }
