@@ -85,7 +85,6 @@ exports.consultarAllByEmail = async (req, res) => {
         // 🚨 CORRECCIÓN CLAVE: ¡Faltaba el 'await'!
         const result = await userModel.consultarInfoxEmail(email); 
 
-        // ⚠️ CORRECCIÓN DE LA VERIFICACIÓN: 'result' es un array.
         if (!result || result.length === 0) {
             // El usuario no fue encontrado o la respuesta está vacía
             return res.status(404).json({ message: `Usuario con email ${email} no encontrado.` });
@@ -156,13 +155,16 @@ exports.crearProyecto = async (req, res) => {
 }
 
 exports.crerOfertante= async(req,res)=>{
-    const {usuario,area,estadoOferta,fechaInicio,fechaFin} = req.body
+    const {area,estadoOferta,fechaInicio,fechaFin} = req.body
+
+    const nombreUsuario= userModel.consultarNombrexEmail();
+    
     try {
         const res = await fetch(`url de proyectos`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                usuario, area, descripcion, estadoOferta, url, fechaInicio,
+                nombreUsuario, area, descripcion, estadoOferta, url, fechaInicio,
                 fechaFin
             })
         })

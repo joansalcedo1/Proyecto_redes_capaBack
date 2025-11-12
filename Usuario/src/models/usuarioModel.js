@@ -70,7 +70,7 @@ async function eliminarUsuario(id) {
 async function consultarNombrexEmail(email) {
     try {
         const result = await connection.query(
-            'SELECT `nombre`, `apellido` FROM `usuarios` WHERE email = ?', [email]
+            "SELECT CONCAT(`nombre`, ' ', `apellido`) AS nombreCompleto FROM `usuarios` WHERE email = ?", [email]
         )
         return result[0][0]
     } catch (error) {
