@@ -155,29 +155,42 @@ exports.crearProyecto = async (req, res) => {
 }
 
 exports.crerOfertante= async(req,res)=>{
-    const {area,estadoOferta,fechaInicio,fechaFin} = req.body
-
-    const nombreUsuario= userModel.consultarNombrexEmail();
-    
+    const {fechaInicio,fechaFin,area,estadoOferta} = req.body
+    const emailParams= req.params.email 
+    const consulta= await userModel.consultarNombrexEmail(emailParams)
+    const nombreCompleto = consulta.nombreCompleto
     try {
-        const res = await fetch(`url de proyectos`, {
+        const fetchRes = await fetch(`url de ofertantes`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                nombreUsuario, area, descripcion, estadoOferta, url, fechaInicio,
-                fechaFin
+                fechaInicio,
+                fechaFin,
+                nombreCompleto, area, estadoOferta
             })
         })
-        // Manejar errores HTTP
-        if (!res.ok) {
-            const errText = await res.text();
-            console.log(errText)
-            return res
+        // 4. Manejar errores HTTP de la API externa
+        if (!fetchRes.ok) {
+            const errText = await fetchRes.text();
+            console.error(`Error de la API externa: ${errText}`);
+            
+            // 🚨 CORRECCIÓN 2: Sintaxis correcta de res.status().json()
+            return res.status(fetchRes.status).json({ 
+                message: "Error al crear ofertante en la API de Proyectos.", 
+                details: errText 
+            });
         }
-        const data = await res.json();
-        return data;
+
+        const data = await fetchRes.json();
+        // 🚨 CORRECCIÓN CLAVE: Devolver la respuesta JSON con el objeto 'res' de Express
+        return res.status(201).json(data);
     } catch (error) {
-        console.error(error)
-        return error
+        // 6. Manejar errores de conexión o de la base de datos local
+        console.error("Error en la lógica del controlador:", error);
+        // 🚨 CORRECCIÓN CLAVE: Devolver un error 500 al cliente con el objeto 'res' de Express
+        return res.status(500).json({ 
+            message: "Error interno del servidor.", 
+            error: error.message 
+        });
     }
 }

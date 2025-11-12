@@ -10,6 +10,7 @@ const router = express.Router()
 router.get("/saludo", controllerUsuario.saludo);
 router.get("/", controllerUsuario.getUsers); //obtener todos los usuarios
 router.get("/info", controllerUsuario.consultarAllByEmail) //consultar informacion por email
+router.post("/ofertante/:email")
 router.get("/nombre", controllerUsuario.consultarNombre) //consultar el nombre del usuario
 router.post("/", controllerUsuario.createUser); //para postear el elemento correspondiente
 router.put("/", controllerUsuario.editUser);  //para editar cualquier elemento correspondiente
