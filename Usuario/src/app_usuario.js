@@ -2,7 +2,7 @@ const express = require("express"); //con esto Podemos inicializar nuestro serve
 const app = express(); //Con esto nos aseguramos de encender el server en nuestra app.
 const morgan = require('morgan'); 
 const cors = require('cors');
-const routes = require("./routes/routes_Convocatoriates")
+const routes = require("./routes/routes_usuario")
 
 const PORT = 3308 
 //SE SETEA EL PUERTO 
@@ -19,7 +19,7 @@ Para ofertante => /ofertante
 Para postulante => /postulante
 */
 
-app.use("/apiRedes/convocatoria",routes)
+app.use("/apiRedes/usuarios",routes)
 
 app.listen(PORT,()=>{
     console.log("app is listening port 3308")
