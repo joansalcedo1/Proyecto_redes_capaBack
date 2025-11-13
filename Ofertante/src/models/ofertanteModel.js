@@ -6,7 +6,7 @@ const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',       // usuario por defecto de XAMPP
   password: '',       // deja vacío si no configuramos contraseña
-  database: 'apiRedes', // nombre de la base de datos
+  database: 'ofertante', // nombre de la base de datos
 });
 
 // Obtener todas las ofertas

@@ -49,10 +49,10 @@ async function actualizarEstadoOferta(req, res) {
     if (estado_of === "ocupado" || estado_of === "confirmado") {
       try {
         // Llamada al microservicio Participante (ajustae el puerto según la config)
-        /*await axios.post("http://localhost:3307/apiRedes/participante", {
+        await axios.post("http://localhost:3308/apiRedes/convocatoria/participantes", {
           id_oferta: id_oferta,
           //estadoParticipante: "activo"
-        });*/
+        });
 
         console.log(`Se creó un participante automáticamente para la oferta ${id_oferta}`);
       } catch (err) {
