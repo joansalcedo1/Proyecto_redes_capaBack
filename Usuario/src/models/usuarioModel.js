@@ -1,12 +1,9 @@
-//Sript para crear el modelo que se va a guardar en la base de datos 
-
 const mysql = require('mysql2/promise');
 const connection = mysql.createPool({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'usuarios_redes',
-    port: 3307
+    database: 'usuarios_redes'
 });
 
 async function obtenerUsuarios() {
@@ -28,7 +25,7 @@ async function crearUsuarios(nombre, apellido, email, password, rol, perfil) {
         throw error;
     }
 }
-//id	nombre	apellido	email	password	rol	
+
 async function obtenerUsuarioPorId(id) {
     try {
         const result = await connection.query(
@@ -90,6 +87,11 @@ async function consultarInfoxEmail(email) {
 }
 
 module.exports = {
-    crearUsuarios, editarUsuario, eliminarUsuario, obtenerUsuarioPorId,
-    obtenerUsuarios, consultarInfoxEmail, consultarNombrexEmail
+    crearUsuarios, 
+    editarUsuario, 
+    eliminarUsuario, 
+    obtenerUsuarioPorId,
+    obtenerUsuarios, 
+    consultarInfoxEmail, 
+    consultarNombrexEmail
 }; 

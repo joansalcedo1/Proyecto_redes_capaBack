@@ -3,15 +3,28 @@ const {Router} = require("express");
 const router = Router(); 
 const convocatoriaModel = require("../models/convocatoriaModel");
 
+/**
+ * @function crearConvocatoria
+ * @description Crea una nueva convocatoria y responde con el ID de la convocatoria creada.
+ * @route POST /apiRedes/convocatoria
+ * @param {object} req - Objeto de la solicitud HTTP (contiene body con datos).
+ * @param {object} res - Objeto de la respuesta HTTP.
+ */
 exports.crearConvocatoria = async (req, res) => {
+  // Validaciones básicas de los datos recibidos
   try {
     const {tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto} = req.body;
     const result = await convocatoriaModel.createConvocatoria(tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto);
-    res.status(201).json({message: "Convocatoria creada exitosamente"});
-}
+    res.status(201).json({
+      message: "Convocatoria creada exitosamente", 
+      idConvocatoria: result.insertId
+    });
+  }
   catch (error) {
     console.error('[ERROR] Error al crear convocatoria:', error);
-    res.status(500).json({message: "Error al crear la convocatoria"});
+    res.status(500).json({
+      message: "Error al crear la convocatoria"
+    });
   }
 };
 

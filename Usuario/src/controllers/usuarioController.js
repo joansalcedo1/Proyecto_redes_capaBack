@@ -1,9 +1,5 @@
-//Script que contiene la logica de cada uno de los metodos que se van a hacer
 const userModel = require("../models/usuarioModel")
-
-exports.saludo = async (req, res) => {
-    res.json("hola");
-}
+const PROYECTO_API_URL = 'http://localhost:3312/apiRedes/proyecto/';
 
 exports.createUser = async (req, res) => {
     try {
@@ -14,7 +10,7 @@ exports.createUser = async (req, res) => {
         }
         return res.status(201).json(user)
     } catch (error) {
-        console.error(`Hubo un error manito:${error}`)
+        console.error(`Hubo un error:${error}`)
         return res.status(500).json(`Hubo un error creando el usuario ${error}`)
     }
 }
@@ -34,10 +30,10 @@ exports.getUsers = async (req, res) => {
 
 exports.getUserById = async (req, res) => {
     try {
-        const { id } = req.params
-        const result = await userModel.obtenerUsuarioPorId(id)
+        const idUser = req.params.id;
+        const result = await userModel.obtenerUsuarioPorId(idUser)
         if (!result) {
-            return res.status(400).json(`La respuesta fue vacia: ${user}}`)
+            return res.status(400).json(`La respuesta fue vacia: ${idUser}}`)
 
         }
         return res.status(200).json(result)
@@ -79,6 +75,7 @@ exports.deleteUser = async (req, res) => {
     }
 }
 
+/*
 exports.consultarAllByEmail = async (req, res) => {
     try {
         const email = req.body.email;
@@ -96,11 +93,11 @@ exports.consultarAllByEmail = async (req, res) => {
         console.error(error);
         return res.status(500).json({ message: "Error interno del servidor al consultar por email." });
     }
-}
+}*/
 
 exports.consultarNombre = async (req, res) => {
+    const email = req.params.emailUser;
     try {
-        const email = req.body.email;
         const result = await userModel.consultarNombrexEmail(email);
 
         if (!result) {
@@ -113,39 +110,72 @@ exports.consultarNombre = async (req, res) => {
     }
 }
 
+
+/**
+ * @async
+ * @function crearProyecto
+ * @description Crea un nuevo proyecto en el Microservicio de Proyectos, obteniendo primero el nombre del director (organizador) del Microservicio de Usuarios.
+ * @route POST /apiRedes/usuario/crear-proyecto (Ruta de ejemplo para el Microservicio de Usuarios)
+ * @param {object} req - Objeto de la solicitud HTTP (contiene body con todos los datos del proyecto, incluido el email del director).
+ * @param {object} res - Objeto de la respuesta HTTP.
+ * @documentation Este método orquesta dos llamadas: GET al propio MS de Usuarios (para el nombre) y POST al MS de Proyectos (para la creación).
+ */
 exports.crearProyecto = async (req, res) => {
+
+    const organizadorEmail = req.params.emailUser;
     try {
 
-        const titulo = req.body.titulo
-        const organizador = req.body.organizador
-        const descripcion = req.body.descripcion
-        const estado = req.body.estado
-        const url = req.body.url
-        const fechaInicio = req.body.fechaInicio
-        const fechaFin = req.body.fechaFin
-        const necesitaLuces = req.body.necesitaLuces
-        const necesitaArte = req.body.necesitaArte
-        const necesitaCamara = req.body.necesitaCamara
-        const necesitaPost = req.body.necesitaPost
-        const necesitaDirecc = req.body.necesitaDirecc
+        const {
+        titulo, descripcion, estado, url, fechaInicio, fechaFin, lucesDep, arteDep, camaraDep, postProdDep, direccionDep
+        } = req.body;
 
-        const res = await fetch(`url de proyectos`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                titulo, organizador, descripcion, estado, url, fechaInicio,
-                fechaFin, necesitaLuces, necesitaArte, necesitaCamara,
-                necesitaPost, necesitaDirecc
-            })
-        })
-        // Manejar errores HTTP
-        if (!res.ok) {
-            const errText = await res.text();
-            console.log(errText)
-            return res
+        // --- Validación inicial ---
+        if (!titulo || !descripcion || !fechaInicio) {
+            console.warn('⚠️ Log: Datos mínimos incompletos para crear proyecto.');
+            return res.status(400).json({
+                error: 'Faltan campos obligatorios (titulo, descripcion, fechaInicio).'
+            });
         }
-        const data = await res.json();
-        return data;
+
+        const userName = await userModel.consultarNombrexEmail(organizadorEmail);
+        if (!userName) {
+            console.warn(`⚠️ Log: Email User ${organizadorEmail} no encontrado para crear proyecto.`);
+            return res.status(404).json({ message: 'Usuario no encontrado.' });
+        }
+
+        const proyectoPayload = {
+            titulo,
+            organizador: userName.nombreCompleto, 
+            descripcion,
+            estado: estado || 'activo', 
+            url,
+            fechaInicio,
+            fechaFin,
+            lucesDep,
+            arteDep,
+            camaraDep,
+            postProdDep,
+            direccionDep
+        };
+
+        try {
+            const response = await axios.post(PROYECTO_API_URL, proyectoPayload);
+            console.log(`📡 Log: Proyecto creado por ${userName.nombreCompleto} con éxito. ${response.text()}`);
+        } catch (axiosError) {
+            if (axiosError.response) {
+                console.error(`❌ Log: Error HTTP (${axiosError.response.status}) al crear Proyecto para ${userName.nombreCompleto}. Detalles: ${JSON.stringify(axiosError.response.data)}`);
+                erroresConvocatoria.push(`Error al crear Proyecto: ${JSON.stringify(axiosError.response.data).substring(0, 50)}...`);
+            } else {
+                console.error(`❌ Log: Error de RED/AXIOS al crear Proyecto Detalles: ${axiosError.message}`);
+                erroresConvocatoria.push(`Error de red al crear Proyecto.`);
+            }
+        }
+
+        console.log(`✅ Log: Creacion del Proyecto completado para el usuario ${userName.nombreCompleto}.`);
+        res.status(200).json({
+            user: userName.nombreCompleto,
+            tituloProyecto: proyectoPayload.titulo
+        });
 
     } catch (error) {
         console.error(error);
@@ -154,6 +184,7 @@ exports.crearProyecto = async (req, res) => {
 
 }
 
+/*
 exports.crerOfertante= async(req,res)=>{
     const {fechaInicio,fechaFin,area,estadoOferta} = req.body
     const emailParams= req.params.email 
@@ -193,4 +224,4 @@ exports.crerOfertante= async(req,res)=>{
             error: error.message 
         });
     }
-}
+}*/

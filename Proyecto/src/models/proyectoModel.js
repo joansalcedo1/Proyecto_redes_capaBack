@@ -1,26 +1,22 @@
-//Sript para crear el modelo que se va a guardar en la base de datos 
 const mysql = require('mysql2/promise');
-
 const dbConfig = {
-    host: 'localhost',      // O la IP de tu servidor de BD
-    user: 'root',     // ¡Cambia esto por tu usuario de BD!
-    password: '', // ¡Cambia esto por tu contraseña!
-    database: 'capaproyectos' // El nombre de tu base de datos (por ejemplo, 'ProyectosDB')
+    host: 'localhost',     
+    user: 'root',     
+    password: '', 
+    database: 'capaproyectos'
 };
-
 async function connectDB() {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        console.log('✅ Conexión a MySQL establecida correctamente.');
+        console.log('Conexión a MySQL establecida correctamente.');
         return connection;
     } catch (error) {
-        console.error('❌ Error al conectar con la base de datos:', error.message);
+        console.error('Error al conectar con la base de datos:', error.message);
         throw new Error('No se pudo establecer conexión con la base de datos.');
     }
 }
 
 /**
- * @async
  * @function crearProyecto
  * @description Inserta un nuevo proyecto en la tabla 'Proyectos'.
  * @param {object} nuevoProyecto - Objeto con los datos del proyecto a crear.
@@ -35,12 +31,11 @@ async function crearProyecto(nuevoProyecto) {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    // Desestructuración y mapeo de los datos del objeto para el array de valores.
     const values = [
         nuevoProyecto.titulo,
         nuevoProyecto.organizador,
         nuevoProyecto.descripcion,
-        nuevoProyecto.estado, // Debe ser 'activo' o 'finalizado'
+        nuevoProyecto.estado, 
         nuevoProyecto.url,
         nuevoProyecto.fechaInicio,
         nuevoProyecto.fechaFin,
@@ -65,7 +60,6 @@ async function crearProyecto(nuevoProyecto) {
 
 
 /**
- * @async
  * @function actualizarEstadoProyecto
  * @description Actualiza el campo 'estado' de un proyecto específico.
  * @param {number} idProyecto - El ID del proyecto a actualizar.
@@ -79,8 +73,6 @@ async function actualizarEstadoProyecto(idProyecto, nuevoEstado) {
         SET estado = ?
         WHERE idProyecto = ?
     `;
-
-    // El tipo ENUM garantiza que 'nuevoEstado' sea uno de los valores permitidos.
     const values = [nuevoEstado, idProyecto];
 
     try {
@@ -95,14 +87,12 @@ async function actualizarEstadoProyecto(idProyecto, nuevoEstado) {
 }
 
 /**
- * @async
  * @function consultarProyectos
  * @description Consulta todos los proyectos (o una lista filtrada).
  * @returns {Promise<object[]>} Un array con todos los proyectos encontrados.
  */
 async function consultarProyectos() {
     const connection = await connectDB();
-    // Se recomienda ordenar por fecha de inicio para una mejor visualización.
     const sql = `
         SELECT
             idProyecto, titulo, organizador, estado, url, fechaInicio
@@ -111,8 +101,6 @@ async function consultarProyectos() {
     `;
 
     try {
-        // Se usa query() para consultas SELECT simples que no necesitan sanitización por parámetros.
-        // Aunque execute() también funciona, query() es más directo para SELECTs sin parámetros.
         const [rows] = await connection.query(sql);
         return rows;
     } catch (error) {
@@ -124,7 +112,6 @@ async function consultarProyectos() {
 }
 
 /**
- * @async
  * @function consultarInformacionProyecto
  * @description Consulta la información detallada de un proyecto por su ID.
  * @param {number} idProyecto - El ID del proyecto a consultar.
@@ -132,7 +119,6 @@ async function consultarProyectos() {
  */
 async function consultarInformacionProyecto(idProyecto) {
     const connection = await connectDB();
-    // Consulta todos los campos para obtener la información completa.
     const sql = `
         SELECT *
         FROM Proyectos
@@ -141,7 +127,6 @@ async function consultarInformacionProyecto(idProyecto) {
 
     try {
         const [rows] = await connection.execute(sql, [idProyecto]);
-        // Si se encuentra una fila, devuelve el primer elemento (el proyecto). Si no, devuelve null.
         return rows.length > 0 ? rows[0] : null;
     } catch (error) {
         console.error('Error al consultar la información del proyecto:', error);
