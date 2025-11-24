@@ -102,12 +102,12 @@ async function eliminarUsuario(id) {
 
 
 /**
- * @function consultarNombrexEmail
+ * @function consultarNombrexId
  * @description Obtiene el nombre completo de un usuario dado su id.
  * @param {number} idUser 
  * @returns {Promise<object|null>} Objeto con nombreCompleto.
  */
-async function consultarNombrexEmail(idUser) {
+async function consultarNombrexId(idUser) {
     try {
         const sql = "SELECT CONCAT(nombre, ' ', apellido) AS nombreCompleto, id FROM usuarios WHERE id = ?";
         const [rows] = await connection.execute(sql, [idUser]);
@@ -120,17 +120,16 @@ async function consultarNombrexEmail(idUser) {
 
 
 /**
- * @function consultarInfoxEmail
- * @description Obtiene toda la info de un usuario por email.
- * @param {string} email 
+ * @function consultarAreaxId la info de un usuario por email.
+ * @param {string} idUser 
  * @returns {Promise<object|null>}
  */
-async function consultarInfoxEmail(email) {
+async function consultarAreaxId(idUser) {
     try {
-        const [rows] = await connection.execute('SELECT * FROM usuarios WHERE email = ?', [email]);
+        const rows = "SELECT rol AS Area, id FROM usuarios WHERE id = ?";
         return rows.length > 0 ? rows[0] : null;
     } catch (error) {
-        console.error('❌ Error del modelo en consultarInfoxEmail:', error.message);
+        console.error('❌ Error del modelo en consultarAreaxId:', error.message);
         throw error;
     }
 }
@@ -141,6 +140,6 @@ module.exports = {
     eliminarUsuario, 
     obtenerUsuarioPorId,
     obtenerUsuarios, 
-    consultarInfoxEmail, 
-    consultarNombrexEmail
+    consultarAreaxId, 
+    consultarNombrexId
 }; 

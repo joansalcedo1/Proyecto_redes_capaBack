@@ -189,7 +189,7 @@ exports.crearProyecto = async (req, res) => {
         }
 
         // 2. Verificar existencia del usuario (Organizador)
-        const userData = await userModel.consultarNombrexEmail(idUser);
+        const userData = await userModel.consultarNombrexId(idUser);
         if (!userData) {
             console.warn(`⚠️ Log: Email User ${idUser} no encontrado para crear proyecto.`);
             return res.status(404).json({ message: 'Usuario organizador no encontrado.' });
