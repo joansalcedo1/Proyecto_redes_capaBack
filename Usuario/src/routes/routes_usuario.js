@@ -1,20 +1,16 @@
 const express = require("express")
-//Cambiar el nombre de de la variable "controllerAuth" a el nombre de su microservicio
-//Por ejemplo: "controllerPostulante"
 const controllerUsuario = require('../controllers/usuarioController.js')
 const router = express.Router()
 
-//Para crear otra ruta primero se debe saber que operación hacer: get,put,post,delete
-//Luego de eso pensar en como va a ser la url, la base es /apiRedes/<nombre del mirco servicio>/
+// Rutas CRUD Básicas de Usuario
+router.post("/", controllerUsuario.createUser);           // Crear usuario
+router.get("/", controllerUsuario.getUsers);              // Obtener todos
+router.get("/:id", controllerUsuario.getUserById);        // Obtener uno por ID
+router.put("/", controllerUsuario.editUser);              // Editar usuario
+router.delete("/:id", controllerUsuario.deleteUser);         // Eliminar usuario
 
-router.post("/", controllerUsuario.createUser);                         //para postear el elemento correspondiente
-router.get("/", controllerUsuario.getUsers);                            //obtener todos los usuarios
-router.get("/:id", controllerUsuario.getUserById);                      //obtener todos los usuarios
-router.put("/", controllerUsuario.editUser);                            //para editar cualquier elemento correspondiente
-router.delete("/",controllerUsuario.deleteUser)                         //para eliminar cualquier elemento correspondiente
-router.get("/nombre/:emailUser", controllerUsuario.consultarNombre)            //consultar el nombre del usuario
-router.post("/:emailUser/proyecto", controllerUsuario.crearProyecto)   //crear un proyecto
+// Rutas de lógica de negocio y orquestación
+router.get("/nombre/:emailUser", controllerUsuario.consultarNombre);      // Consultar nombre por email
+router.post("/:emailUser/proyecto", controllerUsuario.crearProyecto);     // Orquestar creación de proyecto
 
-
-
-module.exports = router
+module.exports = router;

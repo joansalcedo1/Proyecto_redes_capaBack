@@ -1,73 +1,116 @@
-//Sript para crear el modelo que se va a guardar en la base de datos 
-
 const mysql = require('mysql2/promise');
 
-const conection = mysql.createPool({
+const connection = mysql.createPool({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'convocatoria'
+    database: 'convocatoria',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-async function createConvocatoria(
-  tituloCon,
-  descripcion,
-  areaRequerida,
-  estado,
-  fecha_cierre,
-  numPersSolicitad,
-  tituloProyecto
-) {
-  const result = await conection.query(
-    `INSERT INTO convocatoria 
-     (tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto]
-  );
-  return result;
+/**
+ * @function createConvocatoria
+ * @description Inserta una nueva convocatoria en la base de datos.
+ */
+async function createConvocatoria(tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto) {
+    const sql = `
+        INSERT INTO convocatoria 
+        (tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto];
+
+    try {
+        const [result] = await connection.execute(sql, values);
+        return result.insertId;
+    } catch (error) {
+        console.error('❌ Error del modelo en createConvocatoria:', error.message);
+        throw error;
+    }
 }
 
 
+/**
+ * @function consultConvocatoria
+ * @description Obtiene todas las convocatorias.
+ */
 async function consultConvocatoria() {
-    const result = await conection.query(
-        'SELECT * FROM convocatoria'
-    );
-    return result;
+    try {
+        const [rows] = await connection.query('SELECT * FROM convocatoria');
+        return rows;
+    } catch (error) {
+        console.error('❌ Error del modelo en consultConvocatoria:', error.message);
+        throw error;
+    }
 }
-
+/**
+ * @function updateEstadoConvocatoria
+ * @description Actualiza el estado de una convocatoria por ID.
+ */
 async function updateEstadoConvocatoria(idConvocatoria, estado) {
-    const result = await conection.query(
-        'UPDATE convocatoria SET estado = ? WHERE idConvocatoria = ?',
-        [estado, idConvocatoria]
-    );
-    return result;
+    try {
+        const [result] = await connection.execute(
+            'UPDATE convocatoria SET estado = ? WHERE idConvocatoria = ?',
+            [estado, idConvocatoria]
+        );
+        return result.affectedRows;
+    } catch (error) {
+        console.error('❌ Error del modelo en updateEstadoConvocatoria:', error.message);
+        throw error;
+    }
 }
 
+/**
+ * @function consultInformacionConvocatoria
+ * @description Obtiene el detalle de una convocatoria por ID.
+ */
 async function consultInformacionConvocatoria(idConvocatoria) {
-    // El método query devuelve un array: [rows, fields]. Usamos desestructuración.
-    const [rows] = await conection.query(
-        'SELECT * FROM convocatoria WHERE idConvocatoria = ?',
-        [idConvocatoria]
-    );
-    
-    // Si se encuentra una fila, devuelve el primer elemento (la convocatoria). Si no, devuelve null.
-    return rows.length > 0 ? rows[0] : null;
+    try {
+        const [rows] = await connection.execute(
+            'SELECT * FROM convocatoria WHERE idConvocatoria = ?',
+            [idConvocatoria]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+        console.error('❌ Error del modelo en consultInformacionConvocatoria:', error.message);
+        throw error;
+    }
 }
 
+/**
+ * @function createParticipante
+ * @description Crea un registro en la tabla participante.
+ */
 async function createParticipante(nombre, idConvocatoria) {
-    const result = await conection.query(
-        'INSERT INTO participante VALUES (null, ?, ?)',
-        [nombre, idConvocatoria]
-    );
-    return result;
+    try {
+        const [result] = await connection.execute(
+            'INSERT INTO participante (nombre, convID) VALUES (?, ?)',
+            [nombre, idConvocatoria]
+        );
+        return result.insertId;
+    } catch (error) {
+        console.error('❌ Error del modelo en createParticipante:', error.message);
+        throw error;
+    }
 }
 
+/**
+ * @function consultParticipante
+ * @description Consulta los participantes de una convocatoria específica.
+ */
 async function consultParticipante(idConvocatoria) {
-    const result = await conection.query(
-        'SELECT * FROM participante WHERE convID = ?',
-        [idConvocatoria]
-    );
-    return result;
+    try {
+        const [rows] = await connection.execute(
+            'SELECT * FROM participante WHERE convID = ?',
+            [idConvocatoria]
+        );
+        return rows;
+    } catch (error) {
+        console.error('❌ Error del modelo en consultParticipante:', error.message);
+        throw error;
+    }
 }
 
 module.exports = {

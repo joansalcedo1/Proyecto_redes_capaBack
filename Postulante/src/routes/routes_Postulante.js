@@ -12,12 +12,12 @@
  * Nota: Los handlers son provistos por el controlador.
  */
 
-// const express = require("express");
-// const router = express.Router();
+const express = require("express");
+const router = express.Router();
 
 // Cambiar "controllerAuth" por el microservicio real:
 // -> controllerPostulante
-// const controllerPostulante = require("../controllers/postulanteController");
+const controllerPostulante = require("../controllers/postulanteController");
 
 // -------------------------------------------------------------
 // Rutas REST
@@ -25,19 +25,19 @@
 
 // GET /proyecto_redes_capasback/postulante/
 // Listar todas las postulaciones (acepta query: ?estado=&limit=&offset=)
-// router.get("/", controllerPostulante.listar);
+router.get("/", controllerPostulante.listar);
 
 // GET /proyecto_redes_capasback/postulante/:idPost
 // Conseguir una postulación por ID (idPost vía params)
-// router.get("/:idPost", controllerPostulante.obtener);
+router.get("/:idPost", controllerPostulante.obtener);
 
 // POST /proyecto_redes_capasback/postulante/
 // Crear una postulación (body: {usuarioPos, tituloConvocatoria, ...})
-// router.post("/", controllerPostulante.crear);
+router.post("/", controllerPostulante.crear);
 
 // PATCH /proyecto_redes_capasback/postulante/:idPost/estado
 // Actualizar SOLO el estado (body: { estado: 'aceptado'|'libre' })
-// router.patch("/:idPost/estado", controllerPostulante.actualizarEstado);
+router.patch("/:idPost/estado", controllerPostulante.actualizarEstado);
 
 // -------------------------------------------------------------
 // Exportar router

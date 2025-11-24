@@ -1,7 +1,4 @@
 const express = require("express")
-//Cambiar el nombre de de la variable "controllerAuth" a el nombre de su microservicio
-//Por ejemplo: "controllerPostulante"
-//Al
 const proyectoController = require('../controllers/proyectoController.js')
 const router = express.Router()
 

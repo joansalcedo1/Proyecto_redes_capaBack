@@ -6,19 +6,11 @@ const routes = require("./routes/routes_ofertante")
 
 
 const PORT = 3303 
-//SE SETEA EL PUERTO 
 app.set("port",PORT)
 app.use(express.json())
 app.use(cors());
 app.use(morgan('dev'))
 
-/*
-Para usuarios => /usuario
-Para proyectos => /proyecto
-Para convocatorioa => /convocatoria
-Para ofertante => /ofertante
-Para postulante => /postulante
-*/
 
 app.use("/apiRedes/ofertante",routes)
 

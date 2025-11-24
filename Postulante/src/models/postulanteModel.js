@@ -17,7 +17,7 @@ const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: '',
-  database: 'proyecto', // usa el mismo esquema de tu ejemplo
+  database: 'postulaciones', // usa el mismo esquema de tu ejemplo
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

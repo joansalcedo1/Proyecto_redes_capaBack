@@ -2,15 +2,15 @@ const express = require("express")
 const controller = require('../controllers/convocatoriaController.js')
 const router = express.Router()
 
-//Para crear otra ruta primero se debe saber que operación hacer: get,put,post,delete
-//Luego de eso pensar en como va a ser la url, la base es /apiRedes/<nombre del mirco servicio>/
+// Rutas de Convocatoria
+router.post('/', controller.crearConvocatoria);                                 // Crear
+router.get('/', controller.consultarConvocatorias);                             // Listar todas
+router.get('/:idConvocatoria', controller.consultarInformacionConvocatoria);    // Detalle por ID
+router.put('/:idConvocatoria/estado', controller.actualizarEstadoConvocatoria); // Actualizar Estado
 
-router.post('/', controller.crearConvocatoria);
-router.get('/', controller.consultarConvocatorias);
-router.get('/:idConvocatoria', controller.consultarInformacionConvocatoria);
-router.put('/:idConvocatoria/estado', controller.actualizarEstadoConvocatoria);
-router.post('/participantes', controller.crearParticipante);
-router.get('/participantes/:idConvocatoria', controller.consultarParticipantes);
+// Rutas de Participantes dentro de Convocatoria
+router.post('/participantes', controller.crearParticipante);                    // Agregar participante
+router.get('/participantes/:idConvocatoria', controller.consultarParticipantes);// Listar participantes por convocatoria
 
 
 module.exports = router;

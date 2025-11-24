@@ -1,54 +1,66 @@
-//Script que contiene la logica de cada uno de los metodos que se van a hacer
-const {Router} = require("express");
-const router = Router(); 
 const convocatoriaModel = require("../models/convocatoriaModel");
 
 /**
  * @function crearConvocatoria
  * @description Crea una nueva convocatoria y responde con el ID de la convocatoria creada.
  * @route POST /apiRedes/convocatoria
- * @param {object} req - Objeto de la solicitud HTTP (contiene body con datos).
- * @param {object} res - Objeto de la respuesta HTTP.
  */
 exports.crearConvocatoria = async (req, res) => {
-  // Validaciones básicas de los datos recibidos
+  const {tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto} = req.body;
+  // Validaciones
+    if (!tituloCon || !areaRequerida || !fecha_cierre || !tituloProyecto) {
+        console.warn('⚠️ Log: Datos incompletos para crear convocatoria.');
+        return res.status(400).json({ message: "Faltan campos obligatorios." });
+    }
+
+    if (isNaN(numPersSolicitad) || numPersSolicitad <= 0) {
+        return res.status(400).json({ message: "El número de personas solicitadas debe ser un número positivo." });
+    }
   try {
-    const {tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto} = req.body;
     const result = await convocatoriaModel.createConvocatoria(tituloCon, descripcion, areaRequerida, estado, fecha_cierre, numPersSolicitad, tituloProyecto);
-    res.status(201).json({
-      message: "Convocatoria creada exitosamente", 
-      idConvocatoria: result.insertId
-    });
+    console.log(`✅ Log: Convocatoria creada con ID: ${idGenerado}`);
+        res.status(201).json({
+            message: "Convocatoria creada exitosamente",
+            idConvocatoria: idGenerado
+        });
   }
   catch (error) {
-    console.error('[ERROR] Error al crear convocatoria:', error);
+    console.error('❌ Log: Error al crear convocatoria:', error.message);
     res.status(500).json({
-      message: "Error al crear la convocatoria"
+      message: "Error interno al crear la convocatoria"
     });
   }
 };
 
 /**
- * Consultar todas las convocatorias
- * Método: GET /api/convocatorias
+ * @function consultarConvocatorias
+ * @description Consulta todas las convocatorias existentes.
+ * @route GET /apiRedes/convocatoria
  */
 exports.consultarConvocatorias = async (req, res) => {
   try {
     const [convocatorias] = await convocatoriaModel.consultConvocatoria();
+    console.log(`✅ Log: Se consultaron ${convocatorias.length} convocatorias.`);
     res.status(200).json(convocatorias);
 
   } catch (error) {
+    console.error('❌ Log: Error al consultar convocatorias:', error.message);
     res.status(500).json({ message: 'Error al consultar las convocatorias.' });
   }
 };
 
 /**
- * Consultar una convocatoria específica por ID
- * Método: GET /api/convocatorias/:idConvocatoria
+ * @function consultarInformacionConvocatoria
+ * @description Consulta una convocatoria específica por ID.
+ * @route GET /apiRedes/convocatoria/:idConvocatoria
  */
 exports.consultarInformacionConvocatoria = async (req, res) => {
+  const {idConvocatoria} = req.params;
+  if (isNaN(idConvocatoria)) {
+        return res.status(400).json({ message: 'El ID debe ser numérico.' });
+    }
   try {
-    const {idConvocatoria} = req.params;
+    
     console.log(`[LOG] Consultando convocatoria con ID ${idConvocatoria}...`);
 
     const convocatoria = await convocatoriaModel.consultInformacionConvocatoria(idConvocatoria);
@@ -68,14 +80,18 @@ exports.consultarInformacionConvocatoria = async (req, res) => {
 };
 
 /**
- * Actualizar el estado de una convocatoria
- * Método: PUT /api/convocatorias/:idConvocatoria/estado
+ * @function actualizarEstadoConvocatoria
+ * @description Actualiza el estado de una convocatoria.
+ * @route PUT /apiRedes/convocatoria/:idConvocatoria/estado
  */
 exports.actualizarEstadoConvocatoria = async (req, res) => {
+  const { idConvocatoria } = req.params;
+  const { estado } = req.body;
+  if (!estado) {
+        return res.status(400).json({ message: 'El nuevo estado es requerido.' });
+    }
   try {
-    const { idConvocatoria } = req.params;
-    const { estado } = req.body;
-
+    
     console.log(`[LOG] Actualizando estado de convocatoria ID ${idConvocatoria} → ${estado}`);
 
     const result = await convocatoriaModel.updateEstadoConvocatoria(idConvocatoria, estado);
@@ -95,40 +111,47 @@ exports.actualizarEstadoConvocatoria = async (req, res) => {
 };
 
 /**
- * Crear un participante asociado a una convocatoria
- * Método: POST /api/participantes
+ * @function crearParticipante
+ * @description Asocia un participante a una convocatoria.
+ * @route POST /apiRedes/convocatoria/participantes
  */
 exports.crearParticipante = async (req, res) => {
-  try {
     const { nombre, idConvocatoria } = req.body;
-    console.log(`[LOG] Creando participante "${nombre}" en convocatoria ${idConvocatoria}`);
 
-    await convocatoriaModel.createParticipante(nombre, idConvocatoria);
+    if (!nombre || !idConvocatoria) {
+        return res.status(400).json({ message: 'Faltan datos (nombre, idConvocatoria).' });
+    }
 
-    console.log(`[SUCCESS] Participante "${nombre}" creado correctamente.`);
-    res.status(201).json({ message: 'Participante creado exitosamente.' });
+    try {
+        // Verificar primero si la convocatoria existe (opcional, pero buena práctica)
+        const conv = await convocatoriaModel.consultInformacionConvocatoria(idConvocatoria);
+        if(!conv) {
+          return res.status(404).json({ message: 'La convocatoria indicada no existe.' });
+        }
 
-  } catch (error) {
-    res.status(500).json({ message: 'Error al crear participante.' });
-  }
+        await convocatoriaModel.createParticipante(nombre, idConvocatoria);
+        console.log(`✅ Log: Participante "${nombre}" agregado a convocatoria ${idConvocatoria}.`);
+        res.status(201).json({ message: 'Participante creado exitosamente.' });
+    } catch (error) {
+        console.error('❌ Log: Error al crear participante:', error.message);
+        res.status(500).json({ message: 'Error al crear participante.' });
+    }
 };
 
 /**
- * Consultar todos los participantes de una convocatoria
- * Método: GET /api/participantes/:idConvocatoria
+ * @function consultarParticipantes
+ * @description Consulta los participantes de una convocatoria.
+ * @route GET /apiRedes/convocatoria/participantes/:idConvocatoria
  */
 exports.consultarParticipantes = async (req, res) => {
-  try {
     const { idConvocatoria } = req.params;
-    console.log(`[LOG] Consultando participantes de convocatoria ID ${idConvocatoria}`);
 
-    const [participantes] = await convocatoriaModel.consultParticipante(idConvocatoria);
-
-    console.log(`[SUCCESS] Se encontraron ${participantes.length} participantes.`);
-    res.status(200).json(participantes);
-
-  } catch (error) {
-    console.error('[ERROR] Error al consultar participantes:', error);
-    res.status(500).json({ message: 'Error al consultar los participantes.' });
-  }
+    try {
+        const participantes = await convocatoriaModel.consultParticipante(idConvocatoria);
+        console.log(`✅ Log: Se encontraron ${participantes.length} participantes para la convocatoria ${idConvocatoria}.`);
+        res.status(200).json(participantes);
+    } catch (error) {
+        console.error('❌ Log: Error al consultar participantes:', error.message);
+        res.status(500).json({ message: 'Error al consultar los participantes.' });
+    }
 };
