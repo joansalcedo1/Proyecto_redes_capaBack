@@ -103,14 +103,14 @@ async function eliminarUsuario(id) {
 
 /**
  * @function consultarNombrexEmail
- * @description Obtiene el nombre completo de un usuario dado su email.
- * @param {string} email 
+ * @description Obtiene el nombre completo de un usuario dado su id.
+ * @param {number} idUser 
  * @returns {Promise<object|null>} Objeto con nombreCompleto.
  */
-async function consultarNombrexEmail(email) {
+async function consultarNombrexEmail(idUser) {
     try {
-        const sql = "SELECT CONCAT(nombre, ' ', apellido) AS nombreCompleto, id FROM usuarios WHERE email = ?";
-        const [rows] = await connection.execute(sql, [email]);
+        const sql = "SELECT CONCAT(nombre, ' ', apellido) AS nombreCompleto, id FROM usuarios WHERE id = ?";
+        const [rows] = await connection.execute(sql, [idUser]);
         return rows.length > 0 ? rows[0] : null;
     } catch (error) {
         console.error("❌ Error del modelo en consultarNombrexEmail:", error.message);

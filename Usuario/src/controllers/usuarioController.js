@@ -106,7 +106,7 @@ exports.editUser = async (req, res) => {
 exports.deleteUser = async (req, res) => {
     // Nota: Asumo que recibes el ID en el body según tu código original, 
     // aunque RESTful prefiere recibirlo por params (DELETE /:id).
-    const idUser = req.params.id;
+    const idUser = req.params.idUser;
 
     if (!idUser) {
         return res.status(400).json({ error: 'Se requiere el ID para eliminar.' });
@@ -151,9 +151,9 @@ exports.consultarAllByEmail = async (req, res) => {
  * @route GET /apiRedes/usuarios/nombre/:emailUser
  */
 exports.consultarNombre = async (req, res) => {
-    const email = req.params.emailUser;
+    const idUser = req.params.idUser;
     try {
-        const result = await userModel.consultarNombrexEmail(email);
+        const result = await userModel.consultarNombrexEmail(idUser);
         if (!result) {
             return res.status(404).json({ message: 'Usuario no encontrado con ese email.' });
         }
@@ -172,7 +172,7 @@ exports.consultarNombre = async (req, res) => {
  * @route POST /apiRedes/usuarios/:emailUser/proyecto
  */
 exports.crearProyecto = async (req, res) => {
-    const organizadorEmail = req.params.emailUser;
+    const idUser = req.params.idUser;
     
     try {
         const {
@@ -189,9 +189,9 @@ exports.crearProyecto = async (req, res) => {
         }
 
         // 2. Verificar existencia del usuario (Organizador)
-        const userData = await userModel.consultarNombrexEmail(organizadorEmail);
+        const userData = await userModel.consultarNombrexEmail(idUser);
         if (!userData) {
-            console.warn(`⚠️ Log: Email User ${organizadorEmail} no encontrado para crear proyecto.`);
+            console.warn(`⚠️ Log: Email User ${idUser} no encontrado para crear proyecto.`);
             return res.status(404).json({ message: 'Usuario organizador no encontrado.' });
         }
 
