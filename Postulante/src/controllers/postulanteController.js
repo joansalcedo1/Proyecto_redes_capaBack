@@ -1,149 +1,109 @@
-// src/controllers/postulanteController.js
-const express = require('express');
-const router = express.Router();
-const {
-  obtenerPostulaciones,
-  obtenerPostulacionPorId,
-  crearPostulacion,
-  actualizarEstadoPostulacion,
-} = require('../models/postulanteModel');
+const postulanteModel = require('../models/postulanteModel');
+const axios = require('axios'); // Usamos axios para consistencia
 
-const ESTADOS_VALIDOS = new Set(['aceptado', 'libre']);
-const lp = (req) => `[postulaciones][${new Date().toISOString()}][rid:${req.headers['x-request-id'] || '-'}]`;
+// URL del microservicio de Convocatoria
 
-function validarBodyCrear(body) {
-  const requeridos = ['usuarioPos', 'tituloConvocatoria'];
-  const faltan = requeridos.filter(k => body[k] === undefined || body[k] === null || body[k] === '');
-  return { ok: faltan.length === 0, faltan };
-}
-function validarEstado(estado) {
-  const e = String(estado || '').toLowerCase().trim();
-  return ESTADOS_VALIDOS.has(e) ? { ok: true, value: e } : { ok: false, value: null };
-}
+const CONVOCATORIA_URL = 'http://localhost:3308/apiRedes/convocatoria';
 
-// === RUTAS SIMPLES BAJO /proyecto_redes_capasback/postulante ===
-
-// GET /   -> listar
-router.get('/', async (req, res) => {
-  try {
-    const { estado, limit, offset } = req.query;
-    console.info(`${lp(req)} GET /  estado=${estado} limit=${limit} offset=${offset}`);
-    const data = await obtenerPostulaciones(); // listado simple; si quieres filtros, pásalos al modelo
-    res.status(200).json({ ok: true, total: data.length, data });
-  } catch (err) {
-    console.error(`${lp(req)} ERR list`, err);
-    res.status(500).json({ ok: false, msg: 'Error listando postulaciones', error: err.message });
-  }
-});
-
-// GET /:idPost  -> detalle
-router.get('/:idPost', async (req, res) => {
-  try {
-    const { idPost } = req.params;
-    console.info(`${lp(req)} GET /${idPost}`);
-    const item = await obtenerPostulacionPorId(Number(idPost));
-    if (!item) return res.status(404).json({ ok: false, msg: 'Postulación no encontrada' });
-    res.status(200).json({ ok: true, data: item });
-  } catch (err) {
-    console.error(`${lp(req)} ERR detail`, err);
-    res.status(500).json({ ok: false, msg: 'Error obteniendo postulación', error: err.message });
-  }
-});
-
-// POST /   -> crear
-router.post('/', async (req, res) => {
-  try {
-    console.info(`${lp(req)} POST /  body=`, req.body);
-    const { ok, faltan } = validarBodyCrear(req.body);
-    if (!ok) return res.status(400).json({ ok: false, msg: 'Campos requeridos faltantes', faltan });
-
-    const id = await crearPostulacion(req.body);         // usa COALESCE(?, NOW()) para fechaPost
-    const creada = await obtenerPostulacionPorId(id);
-    res.status(201).json({ ok: true, msg: 'Postulación creada', id, data: creada });
-  } catch (err) {
-    console.error(`${lp(req)} ERR create`, err);
-    res.status(500).json({ ok: false, msg: 'Error creando postulación', error: err.message });
-  }
-});
-
-// POST /solicitar  -> Postulante solicita a Convocatoria (NO cambia estado aquí)
-router.post('/solicitar', async (req, res) => {
+/**
+ * @function listar
+ * @description Lista todas las postulaciones.
+ * @route GET /apiRedes/postulante
+ */
+exports.listar = async (req, res) => {
     try {
-      const { usuarioPos, tituloConvocatoria, mensajePres } = req.body;
-      console.info(`${lp(req)} POST /solicitar`, { usuarioPos, tituloConvocatoria });
-  
-      // Validaciones mínimas
-      if (!usuarioPos || !tituloConvocatoria) {
-        return res.status(400).json({
-          ok: false,
-          msg: 'Faltan campos requeridos: usuarioPos y tituloConvocatoria',
-        });
-      }
-  
-      // URL del microservicio de Convocatoria (pendiente por definir)
-      const urlConvocatoria = ''; // ← coloca aquí la URL real cuando la tengas
-  
-      // Payload: SOLO lo que Convocatoria necesita para evaluar la solicitud
-      const payload = { usuarioPos, tituloConvocatoria, mensajePres };
-  
-      // Importante: este endpoint SOLO "notifica/solicita" a Convocatoria.
-      // NO actualiza estadoPost localmente. Convocatoria decidirá y hará PATCH a /:idPost/estado.
-      const resp = await fetch(urlConvocatoria, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-  
-      if (!resp.ok) {
-        const errText = await resp.text().catch(() => 'Error desconocido');
-        console.error(`${lp(req)} ERR convocatoria`, { status: resp.status, errText });
-        return res.status(resp.status).json({
-          ok: false,
-          msg: 'Convocatoria rechazó o falló la solicitud',
-          error: errText,
-        });
-      }
-  
-      // Si Convocatoria devuelve JSON, lo reenviamos tal cual (proxy)
-      const data = await resp.json().catch(() => ({}));
-      console.info(`${lp(req)} OK solicitud enviada a Convocatoria`);
-      return res.status(200).json({
-        ok: true,
-        msg: 'Solicitud enviada a Convocatoria',
-        data,
-      });
-  
+        const data = await postulanteModel.obtenerPostulaciones();
+        console.log(`✅ Log: Se listaron ${data.length} postulaciones.`);
+        res.status(200).json(data);
     } catch (err) {
-      console.error(`${lp(req)} ERR /solicitar`, err);
-      return res.status(500).json({
-        ok: false,
-        msg: 'Error enviando solicitud a Convocatoria',
-        error: err.message,
-      });
+        console.error(`❌ Log: Error listando postulaciones: ${err.message}`);
+        res.status(500).json({ message: 'Error interno al listar postulaciones.' });
     }
-  });
-  
+};
 
-// PATCH /:idPost/estado  -> actualizar estado
-router.patch('/:idPost/estado', async (req, res) => {
-  try {
+/**
+ * @function obtener
+ * @description Obtiene el detalle de una postulación.
+ * @route GET /apiRedes/postulante/:idPost
+ */
+exports.obtener = async (req, res) => {
+    const { idPost } = req.params;
+    
+    if (isNaN(idPost)) {
+        return res.status(400).json({ message: 'El ID debe ser numérico.' });
+    }
+
+    try {
+        const item = await postulanteModel.obtenerPostulacionPorId(idPost);
+        if (!item) {
+            console.warn(`⚠️ Log: Postulación ID ${idPost} no encontrada.`);
+            return res.status(404).json({ message: 'Postulación no encontrada.' });
+        }
+        console.log(`✅ Log: Postulación ID ${idPost} consultada.`);
+        res.status(200).json(item);
+    } catch (err) {
+        console.error(`❌ Log: Error obteniendo postulación: ${err.message}`);
+        res.status(500).json({ message: 'Error interno del servidor.' });
+    }
+};
+
+/**
+ * @function crear
+ * @description Crea una postulación localmente.
+ * @route POST /apiRedes/postulante
+ */
+exports.crear = async (req, res) => {
+    const { usuarioPos, tituloConvocatoria, mensajePres } = req.body;
+
+    if (!usuarioPos || !tituloConvocatoria) {
+        console.warn('⚠️ Log: Datos incompletos para crear postulación.');
+        return res.status(400).json({ message: 'Faltan campos requeridos (usuarioPos, tituloConvocatoria).' });
+    }
+
+    try {
+        const id = await postulanteModel.crearPostulacion({ 
+            usuarioPos, 
+            tituloConvocatoria, 
+            mensajePres, 
+            estadoPost: 'libre' 
+        });
+        
+        console.log(`✅ Log: Postulación creada con ID ${id} para el usuario ${usuarioPos}.`);
+        res.status(201).json({ 
+            message: 'Postulación creada exitosamente.', 
+            idPost: id 
+        });
+    } catch (err) {
+        console.error(`❌ Log: Error creando postulación: ${err.message}`);
+        res.status(500).json({ message: 'Error interno al crear la postulación.' });
+    }
+};
+
+
+/**
+ * @function actualizarEstado
+ * @description Actualiza el estado de una postulación (ej. aceptado/rechazado).
+ * @route PATCH /apiRedes/postulante/:idPost/estado
+ */
+exports.actualizarEstado = async (req, res) => {
     const { idPost } = req.params;
     const { estado } = req.body;
-    console.info(`${lp(req)} PATCH /${idPost}/estado  estado=${estado}`);
 
-    const v = validarEstado(estado);
-    if (!v.ok) return res.status(400).json({ ok: false, msg: "Valor de 'estado' inválido. Use 'aceptado' o 'libre'." });
+    if (!estado) {
+        return res.status(400).json({ message: 'El campo estado es requerido.' });
+    }
 
-    const existe = await obtenerPostulacionPorId(Number(idPost));
-    if (!existe) return res.status(404).json({ ok: false, msg: 'Postulación no encontrada' });
+    try {
+        const affected = await postulanteModel.actualizarEstadoPostulacion(idPost, estado);
+        
+        if (affected === 0) {
+            return res.status(404).json({ message: 'Postulación no encontrada.' });
+        }
 
-    const affected = await actualizarEstadoPostulacion(Number(idPost), v.value);
-    const actualizada = await obtenerPostulacionPorId(Number(idPost));
-    res.status(200).json({ ok: true, msg: 'Estado actualizado', affected, data: actualizada });
-  } catch (err) {
-    console.error(`${lp(req)} ERR patch estado`, err);
-    res.status(500).json({ ok: false, msg: 'Error actualizando estado', error: err.message });
-  }
-});
-
-module.exports = router;
+        console.log(`✅ Log: Estado de postulación ${idPost} cambiado a "${estado}".`);
+        res.status(200).json({ message: 'Estado actualizado correctamente.' });
+    } catch (err) {
+        console.error(`❌ Log: Error actualizando estado: ${err.message}`);
+        res.status(500).json({ message: 'Error interno al actualizar estado.' });
+    }
+};

@@ -1,18 +1,6 @@
-// src/models/postulanteModel.js
-/**
- * Modelo: POSTULANTE
- * Estructura de tabla:
- *  - idPost INT UNSIGNED PK AI
- *  - usuarioPos VARCHAR(255) NOT NULL
- *  - tituloConvocatoria VARCHAR(150) NOT NULL
- *  - fechaPost DATETIME                (sin DEFAULT en BD)
- *  - mensajePres VARCHAR(500) NULL
- *  - estadoPost ENUM('aceptado','libre') NOT NULL DEFAULT 'libre'
- */
-
 const mysql = require('mysql2/promise');
 
-// Pool de conexión (mismo estilo que convocatoriasModel.js)
+// Pool de conexión 
 const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
@@ -24,7 +12,7 @@ const connection = mysql.createPool({
 });
 
 // ---------------- Utilidades locales ----------------
-const ESTADOS_VALIDOS = new Set(['aceptado', 'libre']);
+const ESTADOS_VALIDOS = new Set(['aceptado', 'libre', 'rechazado', 'en espera']);
 
 /**
  * Normaliza/valida el estado contra el ENUM de la BD.
@@ -35,85 +23,75 @@ function sanitizeEstado(estado) {
   return ESTADOS_VALIDOS.has(e) ? e : 'libre';
 }
 
-// ---------- QUERIES (tabla: POSTULANTE) ----------
-
 /**
- * Consultar postulaciones (lista)
- * Ordena por fechaPost DESC, idPost DESC
- * @returns {Promise<Array>}
+ * @function obtenerPostulaciones
+ * @description Obtiene todas las postulaciones ordenadas por fecha.
  */
 async function obtenerPostulaciones() {
-  const [rows] = await connection.query(
-    'SELECT * FROM `POSTULANTE` ORDER BY `fechaPost` DESC, `idPost` DESC'
-  );
-  return rows;
+    try {
+        const [rows] = await connection.query('SELECT * FROM postulante ORDER BY fechaPost DESC');
+        return rows;
+    } catch (error) {
+        console.error('❌ Error del modelo en obtenerPostulaciones:', error.message);
+        throw error;
+    }
 }
 
 /**
- * Consultar una postulación por id
- * @param {number} idPost
- * @returns {Promise<Object|null>}
+ * @function obtenerPostulacionPorId
+ * @description Obtiene una postulación por ID.
  */
 async function obtenerPostulacionPorId(idPost) {
-  const [rows] = await connection.query(
-    'SELECT * FROM `POSTULANTE` WHERE `idPost` = ? LIMIT 1',
-    [idPost]
-  );
-  return rows[0] || null;
+    try {
+        const [rows] = await connection.execute(
+            'SELECT * FROM postulante WHERE idPost = ? LIMIT 1',
+            [idPost]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+        console.error('❌ Error del modelo en obtenerPostulacionPorId:', error.message);
+        throw error;
+    }
 }
 
 /**
- * Crear postulación
- * Nota: la columna fechaPost NO tiene DEFAULT en la BD,
- * por lo que aquí usamos COALESCE(?, NOW()) para permitir
- * que el backend ponga la fecha actual si no llega desde el cliente.
- * @param {Object} payload
- * @param {string} payload.usuarioPos
- * @param {string} payload.tituloConvocatoria
- * @param {string|Date} [payload.fechaPost]  - opcional
- * @param {string|null} [payload.mensajePres]
- * @param {'aceptado'|'libre'} [payload.estadoPost='libre']
- * @returns {Promise<number>} idPost insertado
+ * @function crearPostulacion
+ * @description Crea un nuevo registro de postulación.
  */
-async function crearPostulacion({
-  usuarioPos,
-  tituloConvocatoria,
-  fechaPost = null,
-  mensajePres = null,
-  estadoPost = 'libre',
-}) {
-  // Validaciones mínimas
-  if (!usuarioPos || !tituloConvocatoria) {
-    throw new Error('usuarioPos y tituloConvocatoria son obligatorios');
-  }
+async function crearPostulacion({ usuarioPos, tituloConvocatoria, mensajePres, estadoPost }) {
+    const estado = sanitizeEstado(estadoPost);
+    // Usamos NOW() de MySQL para la fecha si no se provee lógica en backend
+    const sql = `
+        INSERT INTO postulante (usuarioPos, tituloConvocatoria, fechaPost, mensajePres, estadoPost)
+        VALUES (?, ?, NOW(), ?, ?)
+    `;
+    const values = [usuarioPos, tituloConvocatoria, mensajePres, estado];
 
-  const estado = sanitizeEstado(estadoPost);
-
-  // Insert parametrizado (usa NOW() si fechaPost no viene)
-  const [result] = await connection.query(
-    `INSERT INTO \`POSTULANTE\`
-      (usuarioPos, tituloConvocatoria, fechaPost, mensajePres, estadoPost)
-     VALUES (?, ?, COALESCE(?, NOW()), ?, ?)`,
-    [usuarioPos, tituloConvocatoria, fechaPost, mensajePres, estado]
-  );
-
-  return result.insertId;
+    try {
+        const [result] = await connection.execute(sql, values);
+        return result.insertId;
+    } catch (error) {
+        console.error('❌ Error del modelo en crearPostulacion:', error.message);
+        throw error;
+    }
 }
 
 /**
- * Actualizar el estado de la postulación
- * Solo modifica la columna estadoPost.
- * @param {number} idPost
- * @param {'aceptado'|'libre'} nuevoEstado
- * @returns {Promise<number>} 0 o 1 filas afectadas
+ * @function actualizarEstadoPostulacion
+ * @description Actualiza el estado de una postulación.
  */
 async function actualizarEstadoPostulacion(idPost, nuevoEstado) {
-  const estado = sanitizeEstado(nuevoEstado);
-  const [result] = await connection.query(
-    'UPDATE `POSTULANTE` SET `estadoPost` = ? WHERE `idPost` = ?',
-    [estado, idPost]
-  );
-  return result.affectedRows; // 0 o 1
+    const estado = sanitizeEstado(nuevoEstado);
+    try {
+        const [result] = await connection.execute(
+            'UPDATE postulante SET estadoPost = ? WHERE idPost = ?',
+            [estado, idPost]
+        );
+        return result.affectedRows;
+    } catch (error) {
+        console.error('❌ Error del modelo en actualizarEstadoPostulacion:', error.message);
+        throw error;
+    }
 }
 
 module.exports = {

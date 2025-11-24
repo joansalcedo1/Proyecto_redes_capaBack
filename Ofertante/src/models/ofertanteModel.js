@@ -1,54 +1,114 @@
-//Sript para crear el modelo que se va a guardar en la base de datos 
-
 const mysql = require('mysql2/promise');
 
+// Configuración del Pool de conexiones
 const connection = mysql.createPool({
-  host: 'localhost',
-  user: 'root',       // usuario por defecto de XAMPP
-  password: '',       // deja vacío si no configuramos contraseña
-  database: 'ofertante', // nombre de la base de datos
+    host: 'localhost',
+    user: 'root',
+    password: '',
+    database: 'ofertante',
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
+/**
+ * @function obtenerOfertas
+ * @description Obtiene todas las ofertas registradas en la base de datos.
+ * @returns {Promise<object[]>} Lista de ofertas.
+ */
 // Obtener todas las ofertas
 async function obtenerOfertas() {
-  const [result] = await connection.query('SELECT * FROM ofertante');
-  return result;
+  try {
+        const [rows] = await connection.query('SELECT * FROM ofertante');
+        return rows;
+    } catch (error) {
+        console.error('❌ Error del modelo en obtenerOfertas:', error.message);
+        throw error;
+    }
 }
 
-// Obtener una oferta por ID
+/**
+ * @function obtenerOfertaPorId
+ * @description Busca una oferta específica por su ID.
+ * @param {number} id_oferta - ID de la oferta.
+ * @returns {Promise<object|null>} La oferta encontrada o null.
+ */
 async function obtenerOfertaPorId(id_oferta) {
-  const [result] = await connection.query(
-    'SELECT * FROM ofertante WHERE id_oferta = ?',
-    [id_oferta]
-  );
-  return result[0];
+  try {
+        const [rows] = await connection.execute(
+            'SELECT * FROM ofertante WHERE id_oferta = ?',
+            [id_oferta]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+        console.error('❌ Error del modelo en obtenerOfertaPorId:', error.message);
+        throw error;
+    }
 }
 
-// Crear una nueva oferta
+/**
+ * @function crearOferta
+ * @description Crea una nueva oferta en la base de datos.
+ * @param {string} nombre_usuario 
+ * @param {string} area 
+ * @param {string} fecha_inicio 
+ * @param {string} fecha_fin 
+ * @param {string} estado_of 
+ * @returns {Promise<number>} ID de la oferta insertada.
+ */
 async function crearOferta(nombre_usuario, area, fecha_inicio, fecha_fin, estado_of) {
-  const [result] = await connection.query(
-    'INSERT INTO ofertante (nombre_usuario, area, fecha_inicio, fecha_fin, estado_of) VALUES (?, ?, ?, ?, ?)',
-    [nombre_usuario, area, fecha_inicio, fecha_fin, estado_of || 'disponible']
-  );
-  return result;
+    const sql = `
+        INSERT INTO ofertante (nombre_usuario, area, fecha_inicio, fecha_fin, estado_of) 
+        VALUES (?, ?, ?, ?, ?)
+    `;
+    const values = [nombre_usuario, area, fecha_inicio, fecha_fin, estado_of || 'disponible'];
+
+    try {
+        const [result] = await connection.execute(sql, values);
+        return result.insertId;
+    } catch (error) {
+        console.error('❌ Error del modelo en crearOferta:', error.message);
+        throw error;
+    }
 }
 
-// Actualizar estado de una oferta
+/**
+ * @function actualizarEstadoOferta
+ * @description Actualiza el estado de una oferta existente.
+ * @param {number} id_oferta 
+ * @param {string} estado_of 
+ * @returns {Promise<number>} Número de filas afectadas.
+ */
 async function actualizarEstadoOferta(id_oferta, estado_of) {
-  const [result] = await connection.query(
-    'UPDATE ofertante SET estado_of = ? WHERE id_oferta = ?',
-    [estado_of, id_oferta]
-  );
-  return result;
+    try {
+        const [result] = await connection.execute(
+            'UPDATE ofertante SET estado_of = ? WHERE id_oferta = ?',
+            [estado_of, id_oferta]
+        );
+        return result.affectedRows;
+    } catch (error) {
+        console.error('❌ Error del modelo en actualizarEstadoOferta:', error.message);
+        throw error;
+    }
 }
 
-// Eliminar oferta
+/**
+ * @function eliminarOferta
+ * @description Elimina una oferta por su ID.
+ * @param {number} id_oferta 
+ * @returns {Promise<number>} Número de filas afectadas.
+ */
 async function eliminarOferta(id_oferta) {
-  const [result] = await connection.query(
-    'DELETE FROM ofertante WHERE id_oferta = ?',
-    [id_oferta]
-  );
-  return result;
+    try {
+        const [result] = await connection.execute(
+            'DELETE FROM ofertante WHERE id_oferta = ?',
+            [id_oferta]
+        );
+        return result.affectedRows;
+    } catch (error) {
+        console.error('❌ Error del modelo en eliminarOferta:', error.message);
+        throw error;
+    }
 }
 
 module.exports = {
