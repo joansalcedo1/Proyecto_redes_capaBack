@@ -1,4 +1,5 @@
 const userModel = require("../models/usuarioModel")
+const axios = require('axios');
 const PROYECTO_API_URL = 'http://localhost:3312/apiRedes/proyecto/';
 
 exports.createUser = async (req, res) => {
@@ -99,9 +100,8 @@ exports.consultarNombre = async (req, res) => {
     const email = req.params.emailUser;
     try {
         const result = await userModel.consultarNombrexEmail(email);
-
         if (!result) {
-            return res.status(404).json(`La respuesta fue vacia`)
+            return res.status(404).json(`La respuesta fue vacia ${result}}`)
         }
         return res.status(200).json(result)
     } catch (error) {
@@ -123,6 +123,7 @@ exports.consultarNombre = async (req, res) => {
 exports.crearProyecto = async (req, res) => {
 
     const organizadorEmail = req.params.emailUser;
+    let erroresConvocatoria = [];
     try {
 
         const {
@@ -160,7 +161,7 @@ exports.crearProyecto = async (req, res) => {
 
         try {
             const response = await axios.post(PROYECTO_API_URL, proyectoPayload);
-            console.log(`📡 Log: Proyecto creado por ${userName.nombreCompleto} con éxito. ${response.text()}`);
+            console.log(`📡 Log: Proyecto creado por ${userName.nombreCompleto} con éxito.`);
         } catch (axiosError) {
             if (axiosError.response) {
                 console.error(`❌ Log: Error HTTP (${axiosError.response.status}) al crear Proyecto para ${userName.nombreCompleto}. Detalles: ${JSON.stringify(axiosError.response.data)}`);
@@ -169,6 +170,14 @@ exports.crearProyecto = async (req, res) => {
                 console.error(`❌ Log: Error de RED/AXIOS al crear Proyecto Detalles: ${axiosError.message}`);
                 erroresConvocatoria.push(`Error de red al crear Proyecto.`);
             }
+        }
+
+        if (erroresConvocatoria.length > 0) {
+            // Reportar éxito parcial con advertencias
+            console.warn(`⚠️ Log: Éxito parcial. Fallaron ${erroresConvocatoria.length} convocatorias.`);
+            return res.status(202).json({ 
+                advertencias: erroresConvocatoria
+            });
         }
 
         console.log(`✅ Log: Creacion del Proyecto completado para el usuario ${userName.nombreCompleto}.`);

@@ -12,8 +12,8 @@ router.get("/", controllerUsuario.getUsers);                            //obtene
 router.get("/:id", controllerUsuario.getUserById);                      //obtener todos los usuarios
 router.put("/", controllerUsuario.editUser);                            //para editar cualquier elemento correspondiente
 router.delete("/",controllerUsuario.deleteUser)                         //para eliminar cualquier elemento correspondiente
-router.get("/:emailUser", controllerUsuario.consultarNombre)            //consultar el nombre del usuario
-router.get("/:emailUser/proyecto", controllerUsuario.consultarNombre)   //consultar el nombre del usuario
+router.get("/nombre/:emailUser", controllerUsuario.consultarNombre)            //consultar el nombre del usuario
+router.post("/:emailUser/proyecto", controllerUsuario.crearProyecto)   //crear un proyecto
 
 
 

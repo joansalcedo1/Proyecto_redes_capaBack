@@ -28,11 +28,11 @@ async function crearUsuarios(nombre, apellido, email, password, rol, perfil) {
 
 async function obtenerUsuarioPorId(id) {
     try {
-        const result = await connection.query(
-            'SELECT * FROM usarios WHERE id = ?',
+        const [result] = await connection.execute(
+            'SELECT * FROM usuarios WHERE id = ?',
             [id]
         );
-        return result[0][0]; // devuelve solo el primer producto
+        return result.length > 0 ? result[0] : null;
     } catch (error) {
         console.error('Error del modelo en obtenerUsuarioPorId:', error);
         throw error;
@@ -66,10 +66,10 @@ async function eliminarUsuario(id) {
 }
 async function consultarNombrexEmail(email) {
     try {
-        const result = await connection.query(
+        const result = await connection.execute(
             "SELECT CONCAT(`nombre`, ' ', `apellido`) AS nombreCompleto FROM `usuarios` WHERE email = ?", [email]
         )
-        return result[0][0]
+        return result[0][0];
     } catch (error) {
         console.error("Error del modelo en consultarNombrexEmail", error)
     }

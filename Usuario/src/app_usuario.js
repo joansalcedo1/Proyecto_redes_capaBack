@@ -15,5 +15,5 @@ app.use(morgan('dev'))
 app.use("/apiRedes/usuarios",routes)
 
 app.listen(PORT,()=>{
-    console.log("app is listening port 3308")
+    console.log("app is listening port 3310")
 })

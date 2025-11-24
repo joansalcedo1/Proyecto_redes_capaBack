@@ -1,4 +1,5 @@
-const proyectoModel = require("../models/proyectoModel")
+const proyectoModel = require("../models/proyectoModel");
+const axios = require('axios');
 const CONVOCATORIA_API_URL = 'http://localhost:3308/apiRedes/convocatoria/';
 
 function mapDepartamentoToArea(departamentoKey) {
@@ -221,7 +222,7 @@ exports.lanzarConvocatorias = async (req, res) => {
             try {
                 const response = await axios.post(CONVOCATORIA_API_URL, payload);
                 convocatoriasLanzadas++;
-                console.log(`📡 Log: Convocatoria para ${area} (${cantidadSolicitada} personas) del Proyecto ID ${idProyecto} creada con éxito. ${response.text()}`);
+                console.log(`📡 Log: Convocatoria para ${area} (${cantidadSolicitada} personas) del Proyecto ID ${idProyecto} creada con éxito. ${response.text}`);
             } catch (axiosError) {
                 if (axiosError.response) {
                     console.error(`❌ Log: Error HTTP (${axiosError.response.status}) al crear convocatoria para ${area}. Detalles: ${JSON.stringify(axiosError.response.data)}`);
