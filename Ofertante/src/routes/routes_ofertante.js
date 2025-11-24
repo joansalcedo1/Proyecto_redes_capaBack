@@ -4,6 +4,7 @@ const router = express.Router()
 
 // Rutas principales del microservicio Ofertante
 router.get("/", ofertanteController.obtenerOfertas);
+router.get("/estado/:estado", ofertanteController.obtenerOfertasPorEstado);
 router.get("/:id_oferta", ofertanteController.obtenerOfertaPorId);
 router.post("/", ofertanteController.crearOferta);
 router.put("/:id_oferta", ofertanteController.actualizarEstadoOferta);

@@ -47,6 +47,26 @@ async function obtenerOfertas(req, res) {
   }
 }
 
+
+/**
+ * @function obtenerOfertasPorEstado
+ * @description Obtiene todas las ofertas disponibles.
+ * @route GET /apiRedes/ofertante
+ */
+async function obtenerOfertasPorEstado(req, res) {
+  const { estado } = req.params;
+  try {
+    const ofertas = await ofertanteModel.obtenerOfertaPorEstado(estado);
+    console.log(`✅ Log: Se consultaron ${ofertas.length} ofertas con estado ${estado}.`);
+    res.status(200).json(ofertas);
+  } catch (error) {
+    console.error("❌ Log: Error al obtener ofertas:", error.message);
+    res.status(500).json({ error: "Error del servidor al obtener las ofertas" });
+  }
+}
+
+
+
 /**
  * @function obtenerOfertaPorId
  * @description Consulta una oferta por su ID.
@@ -125,6 +145,7 @@ async function eliminarOferta(req, res) {
 
 module.exports = {
   obtenerOfertas,
+  obtenerOfertasPorEstado,
   obtenerOfertaPorId,
   crearOferta,
   actualizarEstadoOferta,

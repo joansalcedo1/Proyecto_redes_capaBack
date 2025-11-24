@@ -28,6 +28,25 @@ async function obtenerOfertas() {
 }
 
 /**
+ * @function obtenerOfertaPorEstado
+ * @description Busca una ofertas por su Estado.
+ * @param {number} estado - estado de la oferta.
+ * @returns {Promise<object[]>} Lista de ofertas.
+ */
+async function obtenerOfertaPorEstado(estado) {
+  try {
+        const [rows] = await connection.execute(
+            'SELECT * FROM ofertante WHERE estado_of = ?',
+            [estado]
+        );
+        return rows;
+    } catch (error) {
+        console.error('❌ Error del modelo en obtenerOfertaPorEstado:', error.message);
+        throw error;
+    }
+}
+
+/**
  * @function obtenerOfertaPorId
  * @description Busca una oferta específica por su ID.
  * @param {number} id_oferta - ID de la oferta.
@@ -113,6 +132,7 @@ async function eliminarOferta(id_oferta) {
 
 module.exports = {
   obtenerOfertas,
+  obtenerOfertaPorEstado,
   obtenerOfertaPorId,
   crearOferta,
   actualizarEstadoOferta,
