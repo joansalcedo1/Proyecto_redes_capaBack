@@ -7,8 +7,11 @@ router.post("/", controllerUsuario.createUser);           // Crear usuario
 router.get("/", controllerUsuario.getUsers);              // Obtener todos
 router.get("/:idUser", controllerUsuario.getUserById);        // Obtener uno por ID
 router.put("/", controllerUsuario.editUser);              // Editar usuario
-router.delete("/:id", controllerUsuario.deleteUser);         // Eliminar usuario
+router.delete("/:idUser", controllerUsuario.deleteUser);         // Eliminar usuario
 router.get("/nombre/:idUser", controllerUsuario.consultarNombre);      // Consultar nombre por email
+
+// Ruta de Login
+router.post("/login", controllerUsuario.login);           // Login del usuario
 
 // --- FUNCIONALIDADES RELACIONES (Orquestación de Microservicios) ---
 
@@ -29,5 +32,7 @@ router.post("/:idUser/postulacion/:idConvocatoria", controllerUsuario.crearPostu
 
 // 6. Postulaciones: Ver postulaciones propias
 router.get("/:idUser/postulaciones", controllerUsuario.consultarPostulacionesUsuario);
+
+router.get("/:idUser/proyectos", controllerUsuario.consultarProyectosUsuario);
 
 module.exports = router;

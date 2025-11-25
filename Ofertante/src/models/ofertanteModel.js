@@ -93,17 +93,22 @@ async function crearOferta(nombre_usuario, area, fecha_inicio, fecha_fin, estado
 
 /**
  * @function actualizarEstadoOferta
- * @description Actualiza el estado de una oferta existente.
- * @param {number} id_oferta 
- * @param {string} estado_of 
- * @returns {Promise<number>} Número de filas afectadas.
+ * @description Actualiza estado y opcionalmente la columna 'convocatoria' (varchar).
  */
-async function actualizarEstadoOferta(id_oferta, estado_of) {
+async function actualizarEstadoOferta(id_oferta, estado_of, convocatoriaTitulo = null) {
     try {
-        const [result] = await connection.execute(
-            'UPDATE ofertante SET estado_of = ? WHERE id_oferta = ?',
-            [estado_of, id_oferta]
-        );
+        let sql, params;
+        // Si viene el título de la convocatoria, lo actualizamos (Caso: Solicitado)
+        if (convocatoriaTitulo) {
+            sql = 'UPDATE ofertante SET estado_of = ?, convocatoria = ? WHERE id_oferta = ?';
+            params = [estado_of, convocatoriaTitulo, id_oferta];
+        } else {
+            // Solo actualizamos estado (Caso: Confirmado/Rechazado por usuario)
+            sql = 'UPDATE ofertante SET estado_of = ? WHERE id_oferta = ?';
+            params = [estado_of, id_oferta];
+        }
+        
+        const [result] = await connection.execute(sql, params);
         return result.affectedRows;
     } catch (error) {
         console.error('❌ Error del modelo en actualizarEstadoOferta:', error.message);

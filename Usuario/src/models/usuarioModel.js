@@ -12,6 +12,26 @@ const connection = mysql.createPool({
 });
 
 /**
+ * @function loginUsuario
+ * @description Valida las credenciales del usuario.
+ * @param {string} email 
+ * @param {string} password 
+ * @returns {Promise<object|null>} Retorna el ID del usuario si es válido, o null.
+ */
+async function loginUsuario(email, password) {
+    try {
+        const [rows] = await connection.execute(
+            'SELECT id, nombre, rol FROM usuarios WHERE email = ? AND contrasenia = ?',
+            [email, password]
+        );
+        return rows.length > 0 ? rows[0] : null;
+    } catch (error) {
+        console.error('❌ Error del modelo en loginUsuario:', error.message);
+        throw error;
+    }
+}
+
+/**
  * @function obtenerUsuarios
  * @description Obtiene la lista de todos los usuarios registrados.
  * @returns {Promise<object[]>} Array con los usuarios.
@@ -135,6 +155,7 @@ async function consultarAreaxId(idUser) {
 }
 
 module.exports = {
+    loginUsuario,
     crearUsuarios, 
     editarUsuario, 
     eliminarUsuario, 

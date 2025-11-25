@@ -3,7 +3,7 @@ const axios = require('axios');
 const ofertanteModel = require("../models/ofertanteModel")
 
 // URL del microservicio de Convocatoria (Participantes)
-const CONVOCATORIA_API_URL = "http://localhost:3308/apiRedes/convocatoria/participantes";
+const MS_CONVOCATORIA_BASE = "http://localhost:3308/apiRedes/convocatoria";
 
 /**
  * @function crearOferta
@@ -99,7 +99,7 @@ async function obtenerOfertaPorId(req, res) {
  */
 async function actualizarEstadoOferta(req, res) {
   const { id_oferta } = req.params;
-    const { estado_of } = req.body;
+    const { estado_of, convocatoria } = req.body;
 
   if (!estado_of) {
       return res.status(400).json({ error: "El nuevo estado es requerido." });
@@ -112,10 +112,51 @@ async function actualizarEstadoOferta(req, res) {
       }
 
       // 2. Actualizar estado localmente
-      await ofertanteModel.actualizarEstadoOferta(id_oferta, estado_of);
-      console.log(`✅ Log: Estado de oferta ${id_oferta} actualizado a "${estado_of}".`);
+      await ofertanteModel.actualizarEstadoOferta(id_oferta, estado_of, convocatoria);
+      
+      console.log(`✅ Log: Estado de oferta ${id_oferta} actualizado a "${estado_of}"`);
 
-        res.status(200).json({ mensaje: "Estado de la oferta actualizado con éxito" });
+      // 3. Lógica de Relación: Si el estado pasa a "Confirmado"
+        if (estado_of.toLowerCase() === 'confirmado') {
+            try {
+                const convocatoriaTitulo = ofertaExistente.convocatoria;
+                const areaBusqueda = ofertaExistente.area;
+
+                    // Consultamos todas las convocatorias para filtrar
+                    const respConv = await axios.get(MS_CONVOCATORIA_BASE);
+                    
+                    const todasConvocatorias = respConv.data;
+                    console.log(`✅ Log: ${todasConvocatorias.length} convocatorias recibidas para relación.`);
+                    
+
+                    // Filtramos: Match Título Proyecto y Área
+                    const convocatoriaMatch = todasConvocatorias.find(c => {
+
+                      const convocatoriaMatch = c.tituloProyecto === convocatoriaTitulo && 
+                        c.areaRequerida === areaBusqueda;
+                      console.log("Evaluando convocatoria:", c.tituloProyecto, convocatoriaTitulo, "Área requerida:", c.areaRequerida, "=> Match:", areaBusqueda, convocatoriaMatch);
+                      return convocatoriaMatch;
+                    });
+
+
+                    if (convocatoriaMatch) {
+                        // Crear Participante
+                        await axios.post(`${MS_CONVOCATORIA_BASE}/participantes`, {
+                            nombre: ofertaExistente.nombre_usuario,
+                            idConvocatoria: convocatoriaMatch.idConvocatoria
+                        });
+                        console.log(`✅ Relación: Participante creado en Convocatoria ${convocatoriaMatch.idConvocatoria}`);
+                    } else {
+                        console.warn("⚠️ No se encontró convocatoria match para crear participante automáticamente.");
+                    }
+                
+            } catch (relError) {
+                console.error("❌ Error creando participante automático:", relError.message);
+                // No fallamos la petición principal, solo logueamos el error de relación
+            }
+        }
+
+      res.status(200).json({ mensaje: "Estado de la oferta actualizado con éxito" });
     } catch (error) {
         console.error("❌ Log: Error al actualizar estado de la oferta:", error.message);
         res.status(500).json({ error: "Error interno del servidor al actualizar el estado" });

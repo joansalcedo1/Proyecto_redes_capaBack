@@ -86,7 +86,7 @@ async function consultInformacionConvocatoria(idConvocatoria) {
 async function createParticipante(nombre, idConvocatoria) {
     try {
         const [result] = await connection.execute(
-            'INSERT INTO participante (nombre, convID) VALUES (?, ?)',
+            'INSERT INTO participante (nombrePart, convID) VALUES (?, ?)',
             [nombre, idConvocatoria]
         );
         return result.insertId;

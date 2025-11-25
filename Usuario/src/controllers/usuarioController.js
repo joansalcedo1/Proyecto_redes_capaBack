@@ -21,6 +21,51 @@ async function obtenerAreaUsuarioInterno(idUser) {
     return user.area;
 }
 
+// ==========================================
+// Validacion Login
+// ==========================================
+
+/**
+ * @function login
+ * @description Valida las credenciales del usuario y retorna sus datos si son correctas.
+ * @route POST /apiRedes/usuarios/login
+ */
+exports.login = async (req, res) => {
+    const { email, password } = req.body;
+
+    // Validaciones básicas
+    if (!email || !password) {
+        console.warn('⚠️ Log: Intento de login con credenciales incompletas.');
+        return res.status(400).json({ error: 'El email y password son obligatorios.' });
+    }
+
+    try {
+        const usuario = await userModel.loginUsuario(email, password);
+        
+        if (!usuario) {
+            console.warn(`⚠️ Log: Intento de login fallido para email: ${email}`);
+            return res.status(401).json({ error: 'Email o contraseña incorrectos.' });
+        }
+
+        console.log(`✅ Log: Usuario con ID ${usuario.id} ha iniciado sesión exitosamente.`);
+        return res.status(200).json({ 
+            message: 'Login exitoso',
+            usuario: {
+                id: usuario.id,
+                nombre: usuario.nombre,
+                rol: usuario.rol
+            }
+        });
+    } catch (error) {
+        console.error(`❌ Log: Error al intentar login: ${error.message}`);
+        return res.status(500).json({ error: `Error interno del servidor: ${error.message}` });
+    }
+};
+
+
+
+
+
 
 // ==========================================
 // FUNCIONALIDADES PROPIAS (CRUD)
@@ -76,7 +121,7 @@ exports.getUsers = async (req, res) => {
  * @route GET /apiRedes/usuarios/:id
  */
 exports.getUserById = async (req, res) => {
-    const idUser = req.params.id;
+    const idUser = req.params.idUser;
 
     if (isNaN(idUser)) {
         return res.status(400).json({ error: 'El ID debe ser numérico.' });
@@ -422,5 +467,36 @@ exports.consultarPostulacionesUsuario = async (req, res) => {
     } catch (error) {
         console.error("Error consultando postulaciones:", error.message);
         res.status(500).json({ error: "Error al obtener postulaciones del usuario." });
+    }
+};
+
+
+/**
+ * Microservicio Postulaciones: Consultar Postulaciones por IdUsuario
+ * @route GET /apiRedes/usuarios/:idUser/postulaciones
+ */
+exports.consultarProyectosUsuario = async (req, res) => {
+    const { idUser } = req.params;
+
+    try {
+        // 1. Obtener nombre del usuario
+        const nombreUsuario = await obtenerNombreUsuarioInterno(idUser);
+
+        // 2. Obtener TODAS las postulaciones
+        const response = await axios.get(PROYECTO_API_URL);
+        const todosLasProyectos = response.data;
+
+        console.log(`✅ Log: Se recibieron ${todosLasProyectos.length} proyectos desde MS Proyectos. ${nombreUsuario}`);
+
+        // 3. Filtrar por nombre de usuario
+        const misProyectos = todosLasProyectos.filter(post => 
+            post.organizador === nombreUsuario
+        );
+
+        res.status(200).json(misProyectos);
+
+    } catch (error) {
+        console.error("Error consultando proyectos:", error.message);
+        res.status(500).json({ error: "Error al obtener proyectos del usuario." });
     }
 };

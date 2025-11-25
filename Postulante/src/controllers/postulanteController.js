@@ -3,7 +3,7 @@ const axios = require('axios'); // Usamos axios para consistencia
 
 // URL del microservicio de Convocatoria
 
-const CONVOCATORIA_URL = 'http://localhost:3308/apiRedes/convocatoria';
+const MS_CONVOCATORIA_BASE = "http://localhost:3308/apiRedes/convocatoria";
 
 /**
  * @function listar
@@ -89,21 +89,49 @@ exports.actualizarEstado = async (req, res) => {
     const { idPost } = req.params;
     const { estado } = req.body;
 
-    if (!estado) {
-        return res.status(400).json({ message: 'El campo estado es requerido.' });
-    }
+    if (!estado) return res.status(400).json({ message: 'Estado requerido.' });
 
     try {
-        const affected = await postulanteModel.actualizarEstadoPostulacion(idPost, estado);
-        
-        if (affected === 0) {
-            return res.status(404).json({ message: 'Postulación no encontrada.' });
+        // 1. Obtener datos de la postulación antes de actualizar (necesitamos usuario y título)
+        const postulacion = await postulanteModel.obtenerPostulacionPorId(idPost);
+        if (!postulacion) return res.status(404).json({ message: 'Postulación no encontrada.' });
+
+        // 2. Actualizar estado local
+        await postulanteModel.actualizarEstadoPostulacion(idPost, estado);
+        console.log(`✅ Log: Postulación ${idPost} a estado "${estado}".`);
+
+        // 3. Lógica de Relación: Si es "aceptado"
+        if (estado.toLowerCase() === 'aceptado') {
+            try {
+                // Buscar ID de convocatoria usando el título almacenado en postulación
+                const respConv = await axios.get(MS_CONVOCATORIA_BASE);
+                const todasConvocatorias = respConv.data;
+
+                // Match por Título de Convocatoria
+                const convocatoriaMatch = todasConvocatorias.find(c => 
+                    c.tituloCon === postulacion.tituloConvocatoria
+                );
+
+                if (convocatoriaMatch) {
+                    // Crear Participante
+                    await axios.post(`${MS_CONVOCATORIA_BASE}/participantes`, {
+                        nombre: postulacion.usuarioPos,
+                        idConvocatoria: convocatoriaMatch.idConvocatoria
+                    });
+                    console.log(`✅ Relación: Participante ${postulacion.usuarioPos} creado en Convocatoria ${convocatoriaMatch.idConvocatoria}`);
+                } else {
+                    console.warn(`⚠️ No se encontró convocatoria con título "${postulacion.tituloConvocatoria}" para vincular participante.`);
+                }
+
+            } catch (relError) {
+                console.error("❌ Error creando participante automático:", relError.message);
+            }
         }
 
-        console.log(`✅ Log: Estado de postulación ${idPost} cambiado a "${estado}".`);
         res.status(200).json({ message: 'Estado actualizado correctamente.' });
+
     } catch (err) {
         console.error(`❌ Log: Error actualizando estado: ${err.message}`);
-        res.status(500).json({ message: 'Error interno al actualizar estado.' });
+        res.status(500).json({ message: 'Error interno.' });
     }
 };

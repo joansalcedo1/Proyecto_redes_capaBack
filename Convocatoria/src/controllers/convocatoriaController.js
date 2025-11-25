@@ -1,3 +1,4 @@
+const { debug } = require("console");
 const convocatoriaModel = require("../models/convocatoriaModel");
 const axios = require('axios');
 // --- CONFIGURACIÓN DE URLs DE MICROSERVICIOS ---
@@ -50,7 +51,7 @@ exports.crearConvocatoria = async (req, res) => {
  */
 exports.consultarConvocatorias = async (req, res) => {
   try {
-    const [convocatorias] = await convocatoriaModel.consultConvocatoria();
+    const convocatorias = await convocatoriaModel.consultConvocatoria();
     console.log(`✅ Log: Se consultaron ${convocatorias.length} convocatorias.`);
     res.status(200).json(convocatorias);
 
@@ -107,10 +108,7 @@ exports.actualizarEstadoConvocatoria = async (req, res) => {
 
     const result = await convocatoriaModel.updateEstadoConvocatoria(idConvocatoria, estado);
 
-    if (result[0].affectedRows === 0) {
-      console.warn(`[WARN] No se encontró convocatoria con ID ${idConvocatoria} para actualizar.`);
-      return res.status(404).json({ message: 'Convocatoria no encontrada.' });
-    }
+    
 
     console.log(`[SUCCESS] Estado de convocatoria ID ${idConvocatoria} actualizado a "${estado}".`);
     res.status(200).json({ message: 'Estado de convocatoria actualizado correctamente.' });
@@ -196,7 +194,7 @@ exports.consultarMatchOfertas = async (req, res) => {
             // Validar fechas: la fecha fin de la oferta debe ser >= a la fecha cierre de la convocatoria
             const fechaOferta = new Date(oferta.fecha_fin);
             const fechaConvocatoria = new Date(convocatoria.fecha_cierre);
-            const fechaMatch = (fechaOferta >= fechaConvocatoria); 
+            const fechaMatch = (fechaOferta <= fechaConvocatoria); 
             console.log("Área Match:", areaMatch, "Fecha Match:", fechaMatch, "Fecha Oferta:", oferta.fecha_fin, "Fecha Convocatoria", convocatoria.fecha_cierre);
 
             return areaMatch && fechaMatch && oferta.estado_of === 'disponible';
@@ -245,7 +243,8 @@ exports.solicitarOfertaUsuario = async (req, res) => {
     try {
         // Llamada al MS Ofertante para actualizar estado
         await axios.put(`${MS_OFERTANTE_URL}/${idOferta}`, { 
-            estado_of: `Solicitado por ${convocatoria.tituloProyecto}`
+            estado_of: `Solicitado`,
+            convocatoria: convocatoria.tituloProyecto
         });
 
         console.log(`✅ Log: Oferta ${idOferta} marcada como 'Solicitado'.`);
