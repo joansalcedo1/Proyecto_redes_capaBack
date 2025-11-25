@@ -3,6 +3,29 @@ const axios = require('axios');
 
 // URL del microservicio de proyectos 
 const PROYECTO_API_URL = 'http://localhost:3312/apiRedes/proyecto/';
+const MS_OFERTANTE_URL = 'http://localhost:3303/apiRedes/ofertante';
+const MS_POSTULANTE_URL = 'http://localhost:3314/apiRedes/postulante';
+const MS_CONVOCATORIA_URL = 'http://localhost:3308/apiRedes/convocatoria';
+
+
+/**
+ * Helper para obtener el nombre completo del usuario por ID.
+ */
+async function obtenerNombreUsuarioInterno(idUser) {
+    const user = await userModel.consultarNombrexId(idUser); 
+    return user.nombreCompleto;
+}
+
+async function obtenerAreaUsuarioInterno(idUser) {
+    const user = await userModel.consultarAreaxId(idUser); 
+    return user.area;
+}
+
+
+// ==========================================
+// FUNCIONALIDADES PROPIAS (CRUD)
+// ==========================================
+
 
 /**
  * @function createUser
@@ -104,8 +127,7 @@ exports.editUser = async (req, res) => {
  * @route DELETE /apiRedes/usuarios
  */
 exports.deleteUser = async (req, res) => {
-    // Nota: Asumo que recibes el ID en el body según tu código original, 
-    // aunque RESTful prefiere recibirlo por params (DELETE /:id).
+
     const idUser = req.params.idUser;
 
     if (!idUser) {
@@ -125,26 +147,6 @@ exports.deleteUser = async (req, res) => {
     }
 };
 
-/*
-exports.consultarAllByEmail = async (req, res) => {
-    try {
-        const email = req.body.email;
-        // 🚨 CORRECCIÓN CLAVE: ¡Faltaba el 'await'!
-        const result = await userModel.consultarInfoxEmail(email); 
-
-        if (!result || result.length === 0) {
-            // El usuario no fue encontrado o la respuesta está vacía
-            return res.status(404).json({ message: `Usuario con email ${email} no encontrado.` });
-        }
-        
-        // Devuelve el primer elemento del array (el usuario)
-        return res.status(200).json(result); 
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ message: "Error interno del servidor al consultar por email." });
-    }
-}*/
-
 /**
  * @function consultarNombre
  * @description Consulta el nombre completo de un usuario por email.
@@ -153,7 +155,7 @@ exports.consultarAllByEmail = async (req, res) => {
 exports.consultarNombre = async (req, res) => {
     const idUser = req.params.idUser;
     try {
-        const result = await userModel.consultarNombrexEmail(idUser);
+        const result = await userModel.consultarNombrexId(idUser);
         if (!result) {
             return res.status(404).json({ message: 'Usuario no encontrado con ese email.' });
         }
@@ -163,6 +165,12 @@ exports.consultarNombre = async (req, res) => {
         return res.status(500).json({ error: 'Error interno.' });
     }
 };
+
+
+
+// ==========================================
+// FUNCIONALIDADES RELACIONES (ORQUESTACIÓN)
+// ==========================================
 
 
 /**
@@ -189,16 +197,12 @@ exports.crearProyecto = async (req, res) => {
         }
 
         // 2. Verificar existencia del usuario (Organizador)
-        const userData = await userModel.consultarNombrexId(idUser);
-        if (!userData) {
-            console.warn(`⚠️ Log: Email User ${idUser} no encontrado para crear proyecto.`);
-            return res.status(404).json({ message: 'Usuario organizador no encontrado.' });
-        }
+        const nombreOrganizador = await obtenerNombreUsuarioInterno(idUser);
 
         // 3. Preparar payload para el MS de Proyectos
         const proyectoPayload = {
             titulo,
-            organizador: userData.nombreCompleto, 
+            organizador: nombreOrganizador,
             descripcion,
             estado: estado || 'activo', 
             url,
@@ -218,7 +222,7 @@ exports.crearProyecto = async (req, res) => {
             
             return res.status(201).json({
                 message: 'Proyecto creado exitosamente.',
-                user: userData.nombreCompleto,
+                user: nombreOrganizador.nombreCompleto,
                 tituloProyecto: proyectoPayload.titulo,
                 idProyecto: response.data.idProyecto
             });
@@ -240,44 +244,183 @@ exports.crearProyecto = async (req, res) => {
     }
 };
 
-/*
-exports.crerOfertante= async(req,res)=>{
-    const {fechaInicio,fechaFin,area,estadoOferta} = req.body
-    const emailParams= req.params.email 
-    const consulta= await userModel.consultarNombrexEmail(emailParams)
-    const nombreCompleto = consulta.nombreCompleto
+/**
+ * Microservicio Ofertante: Crear una oferta
+ * @route POST /apiRedes/usuarios/:idUser/oferta
+ */
+exports.crearOfertaUsuario = async (req, res) => {
+    const { idUser } = req.params;
+    const { fechaInicio, fechaFin} = req.body;
+
+    // 1. Obtener datos del usuario para relacionar
+        // Nota: Asumimos que el 'area' viene del body o del perfil del usuario.
+        // Si el 'rol' del usuario es el área, deberíamos sacar el rol de la DB.
+        const usuarioCompleto = await obtenerNombreUsuarioInterno(idUser);
+        const areaFinal = await obtenerAreaUsuarioInterno(idUser);
+
     try {
-        const fetchRes = await fetch(`url de ofertantes`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                fechaInicio,
-                fechaFin,
-                nombreCompleto, area, estadoOferta
-            })
-        })
-        // 4. Manejar errores HTTP de la API externa
-        if (!fetchRes.ok) {
-            const errText = await fetchRes.text();
-            console.error(`Error de la API externa: ${errText}`);
-            
-            // 🚨 CORRECCIÓN 2: Sintaxis correcta de res.status().json()
-            return res.status(fetchRes.status).json({ 
-                message: "Error al crear ofertante en la API de Proyectos.", 
-                details: errText 
-            });
+        
+        
+        if (!usuarioCompleto) return res.status(404).json({ error: "Usuario no encontrado" });
+        if (!areaFinal) return res.status(404).json({ error: "Usuario no encontrado" });
+
+
+        const payload = {
+            nombre_usuario: usuarioCompleto,
+            area: areaFinal,
+            fecha_inicio: fechaInicio,
+            fecha_fin: fechaFin,
+            estado_of: 'disponible'
+        };
+
+        
+
+        // 2. Llamar al MS Ofertante
+        const response = await axios.post(MS_OFERTANTE_URL, payload);
+
+        res.status(201).json({
+            message: "Oferta creada exitosamente vinculada al usuario",
+            data: response.data
+        });
+
+    } catch (error) {
+        console.error("Error creando oferta:", error.message);
+        console.log(usuarioCompleto, areaFinal);
+        res.status(500).json({ error: "Error al comunicarse con Microservicio Ofertante" });
+    }
+};
+
+/**
+ * Microservicio Ofertante: Consultar Ofertas por estado "Solicitado" por IdUsuario
+ * @route GET /apiRedes/usuarios/:idUser/ofertas/solicitadas
+ */
+exports.consultarOfertasSolicitadas = async (req, res) => {
+    const { idUser } = req.params;
+
+    try {
+        // 1. Obtener nombre del usuario
+        const nombreUsuario = await obtenerNombreUsuarioInterno(idUser);
+
+        // 2. Obtener TODAS las ofertas
+        const response = await axios.get(MS_OFERTANTE_URL);
+        const todasLasOfertas = response.data;
+
+        // 3. Filtrar en memoria (Lógica de negocio)
+        const ofertasSolicitadas = todasLasOfertas.filter(oferta => 
+            oferta.nombre_usuario === nombreUsuario && 
+            oferta.estado_of && oferta.estado_of.toLowerCase() === 'solicitado'
+        );
+
+        res.status(200).json(ofertasSolicitadas);
+
+    } catch (error) {
+        console.error("Error consultando ofertas:", error.message);
+        res.status(500).json({ error: "Error al consultar ofertas del usuario" });
+    }
+};
+
+/**
+ * Microservicio Ofertante: Actualizar el estado de la oferta por IdUsuario
+ * @route PUT /apiRedes/usuarios/:idUser/oferta/:idOferta
+ */
+exports.actualizarEstadoOfertaUsuario = async (req, res) => {
+    const { idUser, idOferta } = req.params;
+    const { estado_of } = req.body;
+
+    try {
+        // 1. Validar que el usuario sea el dueño de la oferta (Seguridad básica)
+        const nombreUsuario = await obtenerNombreUsuarioInterno(idUser);
+        
+        // Verificamos la oferta antes de actualizar
+        const ofertaResponse = await axios.get(`${MS_OFERTANTE_URL}/${idOferta}`);
+        const oferta = ofertaResponse.data;
+
+        if (oferta.nombre_usuario !== nombreUsuario) {
+            return res.status(403).json({ error: "Esta oferta no pertenece al usuario indicado." });
         }
 
-        const data = await fetchRes.json();
-        // 🚨 CORRECCIÓN CLAVE: Devolver la respuesta JSON con el objeto 'res' de Express
-        return res.status(201).json(data);
-    } catch (error) {
-        // 6. Manejar errores de conexión o de la base de datos local
-        console.error("Error en la lógica del controlador:", error);
-        // 🚨 CORRECCIÓN CLAVE: Devolver un error 500 al cliente con el objeto 'res' de Express
-        return res.status(500).json({ 
-            message: "Error interno del servidor.", 
-            error: error.message 
+        // 2. Actualizar en MS Ofertante
+        const updateResponse = await axios.put(`${MS_OFERTANTE_URL}/${idOferta}`, { estado_of });
+
+        res.status(200).json({
+            message: "Estado de oferta actualizado correctamente",
+            data: updateResponse.data
         });
+
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            return res.status(404).json({ error: "Oferta no encontrada en el microservicio remoto." });
+        }
+        console.error("Error actualizando oferta:", error.message);
+        res.status(500).json({ error: "Error de comunicación con MS Ofertante" });
     }
-}*/
+};
+
+/**
+ * Microservicio Postulaciones: Crear una postulación
+ * @route POST /apiRedes/usuarios/:idUser/postulacion/:idConvocatoria
+ */
+exports.crearPostulacionUsuario = async (req, res) => {
+    const { idUser, idConvocatoria } = req.params;
+
+    try {
+        // 1. Obtener nombre del Usuario
+        const nombreUsuario = await obtenerNombreUsuarioInterno(idUser);
+
+        // 2. Obtener detalles de la Convocatoria para sacar el título
+        const convResponse = await axios.get(`${MS_CONVOCATORIA_URL}/${idConvocatoria}`);
+        const convocatoria = convResponse.data;
+
+        if (!convocatoria) {
+            return res.status(404).json({ error: "La convocatoria especificada no existe." });
+        }
+
+        // 3. Construir payload para MS Postulante
+        const payload = {
+            usuarioPos: nombreUsuario,
+            tituloConvocatoria: convocatoria.tituloCon, 
+            mensajePres: "Estoy interesado en participar.",
+            estadoPost: 'en espera'
+        };
+
+        // 4. Crear postulación
+        const postResponse = await axios.post(MS_POSTULANTE_URL, payload);
+
+        res.status(201).json({
+            message: "Postulación creada exitosamente",
+            data: postResponse.data
+        });
+
+    } catch (error) {
+        console.error("Error creando postulación:", error.message);
+        res.status(500).json({ error: "Error al procesar la postulación entre microservicios." });
+    }
+};
+
+/**
+ * Microservicio Postulaciones: Consultar Postulaciones por IdUsuario
+ * @route GET /apiRedes/usuarios/:idUser/postulaciones
+ */
+exports.consultarPostulacionesUsuario = async (req, res) => {
+    const { idUser } = req.params;
+
+    try {
+        // 1. Obtener nombre del usuario
+        const nombreUsuario = await obtenerNombreUsuarioInterno(idUser);
+
+        // 2. Obtener TODAS las postulaciones
+        const response = await axios.get(MS_POSTULANTE_URL);
+        const todasLasPostulaciones = response.data;
+
+        // 3. Filtrar por nombre de usuario
+        const misPostulaciones = todasLasPostulaciones.filter(post => 
+            post.usuarioPos === nombreUsuario
+        );
+
+        res.status(200).json(misPostulaciones);
+
+    } catch (error) {
+        console.error("Error consultando postulaciones:", error.message);
+        res.status(500).json({ error: "Error al obtener postulaciones del usuario." });
+    }
+};

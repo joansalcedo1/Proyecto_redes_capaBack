@@ -8,9 +8,26 @@ router.get("/", controllerUsuario.getUsers);              // Obtener todos
 router.get("/:idUser", controllerUsuario.getUserById);        // Obtener uno por ID
 router.put("/", controllerUsuario.editUser);              // Editar usuario
 router.delete("/:id", controllerUsuario.deleteUser);         // Eliminar usuario
-
-// Rutas de lógica de negocio y orquestación
 router.get("/nombre/:idUser", controllerUsuario.consultarNombre);      // Consultar nombre por email
-router.post("/:idlUser/proyecto", controllerUsuario.crearProyecto);     // Orquestar creación de proyecto
+
+// --- FUNCIONALIDADES RELACIONES (Orquestación de Microservicios) ---
+
+
+router.post("/:idUser/proyecto", controllerUsuario.crearProyecto);                                  //Proyecto: Crear un proyecto asociado al usuario
+
+// 2. Ofertante: Crear una oferta (User -> Ofertante)
+router.post("/:idUser/oferta", controllerUsuario.crearOfertaUsuario);
+
+// 3. Ofertante: Consultar Ofertas con estado "Solicitado" de este usuario
+router.get("/:idUser/ofertas/solicitadas", controllerUsuario.consultarOfertasSolicitadas);
+
+// 4. Ofertante: Actualizar estado de una oferta específica del usuario
+router.put("/:idUser/oferta/:idOferta", controllerUsuario.actualizarEstadoOfertaUsuario);
+
+// 5. Postulaciones: Crear postulación (User + Convocatoria -> Postulante)
+router.post("/:idUser/postulacion/:idConvocatoria", controllerUsuario.crearPostulacionUsuario);
+
+// 6. Postulaciones: Ver postulaciones propias
+router.get("/:idUser/postulaciones", controllerUsuario.consultarPostulacionesUsuario);
 
 module.exports = router;

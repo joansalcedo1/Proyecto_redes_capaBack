@@ -126,7 +126,7 @@ async function consultarNombrexId(idUser) {
  */
 async function consultarAreaxId(idUser) {
     try {
-        const rows = "SELECT rol AS Area, id FROM usuarios WHERE id = ?";
+        const [rows] = await connection.execute('SELECT rol AS area, id FROM usuarios WHERE id = ?', [idUser]);
         return rows.length > 0 ? rows[0] : null;
     } catch (error) {
         console.error('❌ Error del modelo en consultarAreaxId:', error.message);
