@@ -245,7 +245,7 @@ exports.crearProyecto = async (req, res) => {
 };
 
 /**
- * Microservicio Ofertante: Crear una oferta
+ * @function crearOfertaUsuario Microservicio Ofertante: Crear una oferta
  * @route POST /apiRedes/usuarios/:idUser/oferta
  */
 exports.crearOfertaUsuario = async (req, res) => {
@@ -291,7 +291,7 @@ exports.crearOfertaUsuario = async (req, res) => {
 };
 
 /**
- * Microservicio Ofertante: Consultar Ofertas por estado "Solicitado" por IdUsuario
+ * @function consultarOfertasSolicitadas Microservicio Ofertante: Consultar Ofertas por estado "Solicitado" por IdUsuario
  * @route GET /apiRedes/usuarios/:idUser/ofertas/solicitadas
  */
 exports.consultarOfertasSolicitadas = async (req, res) => {

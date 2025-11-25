@@ -12,15 +12,15 @@ const connection = mysql.createPool({
 });
 
 // ---------------- Utilidades locales ----------------
-const ESTADOS_VALIDOS = new Set(['aceptado', 'libre', 'rechazado', 'en espera']);
+const ESTADOS_VALIDOS = new Set(['aceptado', 'rechazado', 'en espera']);
 
 /**
  * Normaliza/valida el estado contra el ENUM de la BD.
- * Si viene vacío o inválido, fuerza 'libre'.
+ * Si viene vacío o inválido, fuerza 'en espera'.
  */
 function sanitizeEstado(estado) {
   const e = String(estado || '').toLowerCase().trim();
-  return ESTADOS_VALIDOS.has(e) ? e : 'libre';
+  return ESTADOS_VALIDOS.has(e) ? e : 'en espera';
 }
 
 /**

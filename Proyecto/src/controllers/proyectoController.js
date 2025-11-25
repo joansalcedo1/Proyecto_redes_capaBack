@@ -147,10 +147,10 @@ exports.consultarInformacionProyecto = async (req, res) => {
  */
 exports.lanzarConvocatorias = async (req, res) => {
     const idProyecto = req.params.id;
-    const { titulo, numPersSolicitad, fechaCierre } = req.body; 
+    const { titulo, numPersSolicitad } = req.body; 
 
     // --- Validación de datos ---
-    if (isNaN(idProyecto) || !titulo || !numPersSolicitad || !fechaCierre) {
+    if (isNaN(idProyecto) || !titulo || !numPersSolicitad) {
         console.warn('⚠️ Log: Datos incompletos o inválidos para lanzar convocatorias.');
         return res.status(400).json({
             error: 'Faltan campos obligatorios para la convocatoria o el ID es inválido.'
@@ -213,7 +213,7 @@ exports.lanzarConvocatorias = async (req, res) => {
                 descripcion: proyecto.descripcion,
                 estado: "activo",
                 numPersSolicitad: cantidadSolicitada,
-                fecha_cierre: fechaCierre, 
+                fecha_cierre: proyecto.fechaFin, 
                 tituloProyecto: proyecto.titulo,
                 areaRequerida: area, 
                 fecha_inicio: fechaInicio 

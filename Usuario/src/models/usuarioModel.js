@@ -38,7 +38,7 @@ async function obtenerUsuarios() {
  * @returns {Promise<number>} ID del usuario insertado.
  */
 async function crearUsuarios(nombre, apellido, email, password, rol, perfil) {
-    const sql = 'INSERT INTO usuarios (email, nombre, apellido, password, rol, perfil) VALUES (?, ?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO usuarios (email, nombre, apellido, contrasenia, rol, perfil) VALUES (?, ?, ?, ?, ?, ?)';
     const values = [email, nombre, apellido, password, rol, perfil];
 
     try {
