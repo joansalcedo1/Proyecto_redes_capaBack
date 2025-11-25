@@ -1,0 +1,1136 @@
+openapi: 3.0.3
+info:
+  title: API Sistema de Gestión de Talentos Audiovisuales (Microservicios)
+  description: >
+    Documentación de la API para la plataforma de gestión de proyectos audiovisuales universitarios.
+    
+    **Arquitectura:** Microservicios distribuidos.
+    
+    **Nota para Front-End:** Cada sección de endpoints (Tag) opera en un puerto diferente.
+    Verifique la URL base (Server) especificada en cada endpoint.
+  version: 1.0.0
+  contact:
+    name: Equipo Backend (Soul_Team)
+
+tags:
+  - name: Usuario
+    description: (Puerto 3310) Gestión de usuarios y orquestación principal de perfil.
+  - name: Proyecto
+    description: (Puerto 3312) Gestión de proyectos audiovisuales.
+  - name: Convocatoria
+    description: (Puerto 3308) Gestión de convocatorias y participantes.
+  - name: Ofertante
+    description: (Puerto 3303) Gestión de ofertas de talento (disponibilidad).
+  - name: Postulante
+    description: (Puerto 3314) Gestión de postulaciones a convocatorias.
+
+# Definición global de servidores (aunque se sobreescriben por ruta para precisión)
+servers:
+  - url: http://localhost:3310/apiRedes/usuarios
+    description: Servidor de Usuarios
+  - url: http://localhost:3312/apiRedes/proyecto
+    description: Servidor de Proyectos
+  - url: http://localhost:3308/apiRedes/convocatoria
+    description: Servidor de Convocatorias
+  - url: http://localhost:3303/apiRedes/ofertante
+    description: Servidor de Ofertantes
+  - url: http://localhost:3314/apiRedes/postulante
+    description: Servidor de Postulantes
+
+paths:
+  # ==========================================
+  # MICROSERVICIO: USUARIO (Puerto 3310)
+  # ==========================================
+  /login:
+    post:
+      tags:
+        - Usuario
+      summary: Iniciar sesión
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "juan@gmail.com"
+                password:
+                  type: string
+                  format: password
+                  example: "juan1234"
+      responses:
+        '200':
+          description: Login exitoso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  usuario:
+                    $ref: '#/components/schemas/UsuarioLoginResponse'
+        '401':
+          description: Credenciales incorrectas
+
+  /:
+    post:
+      tags:
+        - Usuario
+      summary: Crear un nuevo usuario
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCreacion'
+      responses:
+        '201':
+          description: Usuario creado
+    get:
+      tags:
+        - Usuario
+      summary: Listar todos los usuarios
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      responses:
+        '200':
+          description: Lista de usuarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Usuario'
+    put:
+      tags:
+        - Usuario
+      summary: Editar usuario
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioEdicion'
+      responses:
+        '200':
+          description: Usuario actualizado
+
+  /{idUser}:
+    get:
+      tags:
+        - Usuario
+      summary: Obtener usuario por ID
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Usuario'
+    delete:
+      tags:
+        - Usuario
+      summary: Eliminar usuario
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario eliminado
+
+  /nombre/{idUser}:
+    get:
+      tags:
+        - Usuario
+      summary: Consultar nombre completo por ID
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Nombre completo recuperado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nombreCompleto:
+                    type: string
+                    example: "Juan Pablo Gutierrez"
+                  id:
+                    type: integer
+
+  # --- RUTAS ORQUESTADORAS (USUARIO -> OTROS SERVICIOS) ---
+
+  /{idUser}/proyecto:
+    post:
+      tags:
+        - Usuario
+      summary: Crear un proyecto asociado al usuario (Orquestador)
+      description: El usuario crea un proyecto. El MS Usuario valida al usuario y luego se comunica con el MS Proyecto.
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProyectoCreacion'
+      responses:
+        '201':
+          description: Proyecto creado exitosamente
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: 
+                    type: string
+                  user: 
+                    type: string
+                  tituloProyecto: 
+                    type: string
+                  idProyecto: 
+                    type: integer
+
+  /{idUser}/oferta:
+    post:
+      tags:
+        - Usuario
+      summary: Crear una oferta de talento (Usuario -> Ofertante)
+      description: El usuario se ofrece como talento disponible. Se comunica con MS Ofertante.
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - fechaInicio
+                - fechaFin
+              properties:
+                fechaInicio:
+                  type: string
+                  format: date
+                  example: "2025-12-10"
+                fechaFin:
+                  type: string
+                  format: date
+                  example: "2025-12-22"
+      responses:
+        '201':
+          description: Oferta creada
+
+  /{idUser}/ofertas/solicitadas:
+    get:
+      tags:
+        - Usuario
+      summary: Ver ofertas donde me han solicitado
+      description: Consulta MS Ofertante filtrando por usuario y estado "solicitado".
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de ofertas solicitadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Oferta'
+
+  /{idUser}/oferta/{idOferta}:
+    put:
+      tags:
+        - Usuario
+      summary: Responder a una solicitud de oferta (Aceptar/Rechazar)
+      description: Actualiza el estado de la oferta en MS Ofertante.
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: idOferta
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado_of:
+                  type: string
+                  enum: [confirmado, rechazado, disponible]
+                  example: "confirmado"
+      responses:
+        '200':
+          description: Estado actualizado
+
+  /{idUser}/postulacion/{idConvocatoria}:
+    post:
+      tags:
+        - Usuario
+      summary: Postularse a una convocatoria
+      description: Orquesta la creación de una postulación en MS Postulante.
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '201':
+          description: Postulación creada
+
+  /{idUser}/postulaciones:
+    get:
+      tags:
+        - Usuario
+      summary: Ver mis postulaciones
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de postulaciones del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Postulacion'
+
+  /{idUser}/proyectos:
+    get:
+      tags:
+        - Usuario
+      summary: Ver mis proyectos (como organizador)
+      servers:
+        - url: http://localhost:3310/apiRedes/usuarios
+      parameters:
+        - in: path
+          name: idUser
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de proyectos creados por el usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProyectoResponse'
+
+  # ==========================================
+  # MICROSERVICIO: PROYECTO (Puerto 3312)
+  # ==========================================
+  /proyecto:
+    get:
+      tags:
+        - Proyecto
+      summary: Listar todos los proyectos
+      servers:
+        - url: http://localhost:3312/apiRedes/proyecto
+      responses:
+        '200':
+          description: Lista de proyectos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProyectoResponse'
+    post:
+      tags:
+        - Proyecto
+      summary: Crear proyecto (Directo)
+      description: Nota - Se recomienda usar el endpoint del MS Usuario para que se asocie automáticamente el organizador.
+      servers:
+        - url: http://localhost:3312/apiRedes/proyecto
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProyectoCreacion'
+      responses:
+        '201':
+          description: Proyecto creado
+
+  /proyecto/{id}:
+    get:
+      tags:
+        - Proyecto
+      summary: Obtener detalles del proyecto
+      servers:
+        - url: http://localhost:3312/apiRedes/proyecto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Objeto Proyecto completo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProyectoResponse'
+    put:
+      tags:
+        - Proyecto
+      summary: Actualizar estado del proyecto
+      servers:
+        - url: http://localhost:3312/apiRedes/proyecto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+                  enum: [activo, finalizado]
+                  example: "finalizado"
+      responses:
+        '200':
+          description: Estado actualizado
+
+  /proyecto/{id}/lanzar-convocatorias:
+    post:
+      tags:
+        - Proyecto
+      summary: Lanzar convocatorias masivas
+      description: Crea múltiples convocatorias en MS Convocatoria basadas en los departamentos del proyecto.
+      servers:
+        - url: http://localhost:3312/apiRedes/proyecto
+      parameters:
+        - in: path
+          name: id
+          description: ID del Proyecto
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - titulo
+                - numPersSolicitad
+              properties:
+                titulo:
+                  type: string
+                  example: "Búsqueda Urgente de Colaboradores"
+                numPersSolicitad:
+                  type: object
+                  additionalProperties:
+                    type: integer
+                  description: Mapa de Área -> Cantidad
+                  example:
+                    Luces: 1
+                    Arte: 4
+                    Cámara: 3
+                    Dirección: 2
+      responses:
+        '200':
+          description: Convocatorias lanzadas exitosamente
+        '202':
+          description: Éxito parcial (algunas fallaron)
+
+  # ==========================================
+  # MICROSERVICIO: CONVOCATORIA (Puerto 3308)
+  # ==========================================
+  /convocatoria:
+    get:
+      tags:
+        - Convocatoria
+      summary: Listar convocatorias
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      responses:
+        '200':
+          description: Lista de convocatorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Convocatoria'
+    post:
+      tags:
+        - Convocatoria
+      summary: Crear convocatoria manualmente
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Convocatoria'
+      responses:
+        '201':
+          description: Convocatoria creada
+
+  /convocatoria/{idConvocatoria}:
+    get:
+      tags:
+        - Convocatoria
+      summary: Detalle de convocatoria
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Datos de la convocatoria
+    put:
+      tags:
+        - Convocatoria
+      summary: Actualizar estado de convocatoria
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+                  example: "activo"
+      responses:
+        '200':
+          description: Actualizado
+
+  /convocatoria/participantes:
+    post:
+      tags:
+        - Convocatoria
+      summary: Agregar participante a convocatoria
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                idConvocatoria:
+                  type: integer
+      responses:
+        '201':
+          description: Participante agregado
+
+  /convocatoria/participantes/{idConvocatoria}:
+    get:
+      tags:
+        - Convocatoria
+      summary: Listar participantes de una convocatoria
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de participantes
+
+  # --- RUTAS DE RELACIÓN CONVOCATORIA ---
+
+  /convocatoria/{idConvocatoria}/match-ofertas:
+    get:
+      tags:
+        - Convocatoria
+      summary: Match automático con Ofertantes
+      description: Busca en MS Ofertante personas disponibles que coincidan con el área y fechas de la convocatoria.
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de ofertas compatibles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Oferta'
+
+  /convocatoria/oferta/{idOferta}/solicitar/{idConvocatoria}:
+    put:
+      tags:
+        - Convocatoria
+      summary: Solicitar a un ofertante
+      description: Cambia el estado de la oferta a "Solicitado" en MS Ofertante.
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idOferta
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Usuario solicitado exitosamente
+
+  /convocatoria/postulacion/{idPostulacion}/confirmar:
+    put:
+      tags:
+        - Convocatoria
+      summary: Confirmar (Aceptar) un postulante
+      description: Actualiza estado en MS Postulante a "aceptado".
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idPostulacion
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Postulante confirmado
+
+  /convocatoria/{idConvocatoria}/postulaciones:
+    get:
+      tags:
+        - Convocatoria
+      summary: Ver postulaciones recibidas para esta convocatoria
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idConvocatoria
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de postulaciones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Postulacion'
+
+  /convocatoria/usuario/{idUsuario}:
+    get:
+      tags:
+        - Convocatoria
+      summary: Ver convocatorias de mis proyectos
+      description: Orquestación compleja (Id -> Nombre -> Proyectos -> Convocatorias).
+      servers:
+        - url: http://localhost:3308/apiRedes/convocatoria
+      parameters:
+        - in: path
+          name: idUsuario
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lista de convocatorias asociadas al usuario
+
+  # ==========================================
+  # MICROSERVICIO: OFERTANTE (Puerto 3303)
+  # ==========================================
+  /ofertante:
+    get:
+      tags:
+        - Ofertante
+      summary: Listar todas las ofertas
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      responses:
+        '200':
+          description: Lista de ofertas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Oferta'
+    post:
+      tags:
+        - Ofertante
+      summary: Crear oferta manualmente
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Oferta'
+      responses:
+        '201':
+          description: Oferta creada
+
+  /ofertante/estado/{estado}:
+    get:
+      tags:
+        - Ofertante
+      summary: Listar ofertas por estado
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      parameters:
+        - in: path
+          name: estado
+          schema:
+            type: string
+            example: "disponible"
+          required: true
+      responses:
+        '200':
+          description: Lista filtrada
+
+  /ofertante/{id_oferta}:
+    get:
+      tags:
+        - Ofertante
+      summary: Obtener oferta por ID
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      parameters:
+        - in: path
+          name: id_oferta
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle oferta
+    put:
+      tags:
+        - Ofertante
+      summary: Actualizar estado oferta
+      description: Si se actualiza a 'confirmado', intenta crear el participante en MS Convocatoria.
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      parameters:
+        - in: path
+          name: id_oferta
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado_of:
+                  type: string
+                  example: "confirmado"
+      responses:
+        '200':
+          description: Actualizado
+    delete:
+      tags:
+        - Ofertante
+      summary: Eliminar oferta
+      servers:
+        - url: http://localhost:3303/apiRedes/ofertante
+      parameters:
+        - in: path
+          name: id_oferta
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Eliminado
+
+  # ==========================================
+  # MICROSERVICIO: POSTULANTE (Puerto 3314)
+  # ==========================================
+  /postulante:
+    get:
+      tags:
+        - Postulante
+      summary: Listar todas las postulaciones
+      servers:
+        - url: http://localhost:3314/apiRedes/postulante
+      responses:
+        '200':
+          description: Lista
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Postulacion'
+    post:
+      tags:
+        - Postulante
+      summary: Crear postulación manual
+      servers:
+        - url: http://localhost:3314/apiRedes/postulante
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Postulacion'
+      responses:
+        '201':
+          description: Creado
+
+  /postulante/{idPost}:
+    get:
+      tags:
+        - Postulante
+      summary: Detalle postulación
+      servers:
+        - url: http://localhost:3314/apiRedes/postulante
+      parameters:
+        - in: path
+          name: idPost
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Detalle
+
+  /postulante/{idPost}/estado:
+    patch:
+      tags:
+        - Postulante
+      summary: Actualizar estado postulación
+      description: Si se actualiza a 'aceptado', dispara creación de participante en MS Convocatoria.
+      servers:
+        - url: http://localhost:3314/apiRedes/postulante
+      parameters:
+        - in: path
+          name: idPost
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+                  enum: [aceptado, rechazado, en espera]
+                  example: "aceptado"
+      responses:
+        '200':
+          description: Estado actualizado
+
+components:
+  schemas:
+    UsuarioCreacion:
+      type: object
+      required:
+        - nombre
+        - apellido
+        - email
+        - password
+        - rol
+      properties:
+        nombre:
+          type: string
+          example: "Carol"
+        apellido:
+          type: string
+          example: "Quira"
+        email:
+          type: string
+          format: email
+          example: "carol@gmail.com"
+        password:
+          type: string
+          format: password
+          example: "carol1234"
+        rol:
+          type: string
+          description: Área de especialización (Cámara, Luces, etc.)
+          example: "Cámara"
+        perfil:
+          type: string
+          example: "Camara fija, con ganas de aprender"
+
+    UsuarioEdicion:
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+        apellido:
+          type: string
+        rol:
+          type: string
+        perfil:
+          type: string
+
+    Usuario:
+      allOf:
+        - $ref: '#/components/schemas/UsuarioEdicion'
+        - type: object
+          properties:
+            email:
+              type: string
+              format: email
+
+    UsuarioLoginResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        rol:
+          type: string
+
+    ProyectoCreacion:
+      type: object
+      required:
+        - titulo
+        - descripcion
+        - fechaInicio
+      properties:
+        titulo:
+          type: string
+          example: "Cortometraje 'El Viaje de Lua'"
+        organizador:
+          type: string
+          description: (Opcional si se usa la ruta orquestada de Usuario)
+          example: "Estudios Sol Naciente"
+        descripcion:
+          type: string
+          example: "Drama psicológico de 15 minutos..."
+        estado:
+          type: string
+          enum: [activo, finalizado]
+          default: activo
+        url:
+          type: string
+          example: "https://drive.google.com/..."
+        fechaInicio:
+          type: string
+          format: date
+          example: "2025-03-10"
+        fechaFin:
+          type: string
+          format: date
+          example: "2025-06-30"
+        lucesDep:
+          type: boolean
+          example: false
+        arteDep:
+          type: boolean
+          example: true
+        camaraDep:
+          type: boolean
+          example: false
+        postProdDep:
+          type: boolean
+          example: false
+        direccionDep:
+          type: boolean
+          example: true
+
+    ProyectoResponse:
+      allOf:
+        - type: object
+          properties:
+            idProyecto:
+              type: integer
+        - $ref: '#/components/schemas/ProyectoCreacion'
+
+    Oferta:
+      type: object
+      properties:
+        id_oferta:
+          type: integer
+        nombre_usuario:
+          type: string
+          example: "Juan Pablo Gutierrez"
+        area:
+          type: string
+          example: "Cámara"
+        fecha_inicio:
+          type: string
+          format: date
+          example: "2025-12-10"
+        fecha_fin:
+          type: string
+          format: date
+          example: "2025-12-22"
+        estado_of:
+          type: string
+          enum: [disponible, solicitado, confirmado]
+          default: disponible
+        convocatoria:
+          type: string
+          description: Título del proyecto al que fue asignado (si aplica)
+
+    Convocatoria:
+      type: object
+      required:
+        - tituloCon
+        - areaRequerida
+      properties:
+        idConvocatoria:
+          type: integer
+        tituloCon:
+          type: string
+          example: "Convocatoria Luces Cortometraje"
+        descripcion:
+          type: string
+        areaRequerida:
+          type: string
+          example: "Luces"
+        estado:
+          type: string
+          example: "activo"
+        fecha_cierre:
+          type: string
+          format: date
+        numPersSolicitad:
+          type: integer
+          example: 2
+        tituloProyecto:
+          type: string
+          example: "El Silencio del Valle"
+
+    Postulacion:
+      type: object
+      properties:
+        idPost:
+          type: integer
+        usuarioPos:
+          type: string
+          example: "Carol Quira"
+        tituloConvocatoria:
+          type: string
+          example: "Convocatoria Luces Cortometraje"
+        fechaPost:
+          type: string
+          format: date-time
+        mensajePres:
+          type: string
+          example: "Estoy muy interesado."
+        estadoPost:
+          type: string
+          enum: [en espera, aceptado, rechazado, libre]
+          default: "en espera"
